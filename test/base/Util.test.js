@@ -144,22 +144,30 @@ suite.test("binarySearchForTransitionFromTrueToFalse", () => {
 });
 
 suite.test("asyncEval", () => {
-    return Promise.all([
+    let cancellers = [];
+    let result = Promise.all([
         // result
-        willResolveTo(Util.asyncEval("5+3", Infinity), 8),
-        willResolveTo(Util.asyncEval("[]", Infinity), []),
-        willResolveTo(Util.asyncEval("var a = 5; var b = 7; a + b;", Infinity), 12),
+        willResolveTo(Util.asyncEval("5+3"), 8),
+        willResolveTo(Util.asyncEval("[]"), []),
+        willResolveTo(Util.asyncEval("var a = 5; var b = 7; a + b;"), 12),
         willResolveTo(Util.asyncEval("var a = 5; var b = 7; a + b;", 1000), 12),
 
         // syntax error
-        willReject(Util.asyncEval("{", Infinity)),
+        willReject(Util.asyncEval("{")),
         willReject(Util.asyncEval("{", 1000)),
 
         // exception thrown
-        willReject(Util.asyncEval("throw 1;", Infinity)),
-        willReject(Util.asyncEval("throw new Error();", Infinity)),
+        willReject(Util.asyncEval("throw 1;")),
+        willReject(Util.asyncEval("throw new Error();")),
 
-        // infinite loop
-        willReject(Util.asyncEval("while (true) {}", 50))
+        // infinite loop (timeout)
+        willReject(Util.asyncEval("while (true) {}", 50)),
+
+        // infinite loop (cancelled)
+        willReject(Util.asyncEval("while (true) {}", Infinity, cancellers))
     ]);
+    for (let f of cancellers) {
+        f();
+    }
+    return result;
 });
