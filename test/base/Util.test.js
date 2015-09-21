@@ -1,4 +1,4 @@
-import { Suite, assertThat, assertThrows, assertTrue, assertFalse } from "test/TestUtil.js"
+import { Suite, assertThat, assertThrows, assertTrue, assertFalse, willResolveTo, willReject } from "test/TestUtil.js"
 import Util from "src/base/Util.js"
 
 import Seq from "src/base/Seq.js"
@@ -141,4 +141,25 @@ suite.test("binarySearchForTransitionFromTrueToFalse", () => {
             assertThat(Util.binarySearchForTransitionFromTrueToFalse(n, i => i <= t)).isEqualTo(Math.min(n, t + 1));
         }
     }
+});
+
+suite.test("asyncEval", () => {
+    return Promise.all([
+        // result
+        willResolveTo(Util.asyncEval("5+3", Infinity), 8),
+        willResolveTo(Util.asyncEval("[]", Infinity), []),
+        willResolveTo(Util.asyncEval("var a = 5; var b = 7; a + b;", Infinity), 12),
+        willResolveTo(Util.asyncEval("var a = 5; var b = 7; a + b;", 1000), 12),
+
+        // syntax error
+        willReject(Util.asyncEval("{", Infinity)),
+        willReject(Util.asyncEval("{", 1000)),
+
+        // exception thrown
+        willReject(Util.asyncEval("throw 1;", Infinity)),
+        willReject(Util.asyncEval("throw new Error();", Infinity)),
+
+        // infinite loop
+        willReject(Util.asyncEval("while (true) {}", 50))
+    ]);
 });

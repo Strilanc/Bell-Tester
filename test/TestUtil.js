@@ -199,6 +199,20 @@ export function assertFalse(subject) {
     assertThat(subject).isEqualTo(false);
 }
 
+export function willResolveTo(future, expected) {
+    return future.then(e => {
+        if (!equate(e, expected)) {
+            fail(`Future resolved to <${describe(e)}> but expected it to resolve to <${describe(expected)}>`);
+        }
+    }, e => fail(`Future rejected with <${describe(e)}> but expected it to resolve to <${describe(expected)}>`));
+}
+
+export function willReject(future) {
+    return future.then(
+            e => fail(`Future resolved to <${describe(e)}> but expected it to reject.`),
+            e => true);
+}
+
 /**
  * Invokes a function, requiring it to throw an exception. Returns the exception wrapped in an assertion subject.
  * @param {function()} func

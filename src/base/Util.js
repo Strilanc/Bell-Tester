@@ -143,6 +143,52 @@ export default class Util {
         }
         return min;
     }
+
+    /**
+     * Returns a promise for the result of using a web worker to eval the given string as code.
+     *
+     * Note that this is NOT intended to be used as a secure sandbox for safely running potentially malicious code.
+     *
+     * @param codeText The string passed to 'eval' in the web worker.
+     * @param timeout The maximum number of milliseconds the web worker is allowed to run before being terminated. Pass
+     * 'Infinity' if you don't want a timeout.
+     */
+    static asyncEval(codeText, timeout) {
+        return new Promise((resolve, reject) => {
+            let workerCode = `postMessage(eval(${JSON.stringify(codeText)}));`;
+            let blob = new Blob([workerCode], {type: 'text/javascript'});
+            let blobUrl = URL.createObjectURL(blob);
+            let worker = new Worker(blobUrl);
+
+            // We want to eagerly cleanup the timeout timer if the worker finishes early.
+            // But we can't start the timer until after we start the worker.
+            // So this resolver and promise are for working with the eventual id of the timer.
+            let timeoutIDResolver = undefined;
+            let timeoutIDPromise = new Promise(res => timeoutIDResolver = res);
+            let cleanup = () => {
+                worker.terminate();
+                timeoutIDPromise.then(clearTimeout);
+            };
+            worker.addEventListener('message', cleanup);
+            worker.addEventListener('error', cleanup);
+
+            // Link the result into the returned promise, and start the worker.
+            worker.addEventListener('message', e => resolve(e.data));
+            worker.addEventListener('error', e => {
+                e.preventDefault();
+                reject(e);
+            });
+            worker.postMessage('start');
+
+            // Start the timeout.
+            if (timeout !== Infinity) {
+                timeoutIDResolver(setTimeout(() => {
+                    worker.terminate();
+                    reject('Timeout');
+                }, timeout));
+            }
+        });
+    }
 }
 
 /**
