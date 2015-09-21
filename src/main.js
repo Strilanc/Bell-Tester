@@ -37,11 +37,17 @@ let runGameManyTimes = (code1, code2, count, cancelList) => {
             i = undefined;
 
             var refChoice = (${pk} & ${refCoinMask}) !== 0;
-            var refchoice = refChoice; // You're welcome.
+
+            // Be forgiving.
+            var refchoice = refChoice;
             var ref_choice = refChoice;
+            var sharedbits = sharedBits;
+            var shared_bits = sharedBits;
 
             var move = undefined;
             ${worldsWorstSandbox(code)}
+
+            // Loose equality is on purpose, so people entering 'x ^ y' don't get an error.
             if (!(move == true) && !(move == false)) {
                 throw new Error("move ended up " + move + " instead of true or false");
             }
@@ -54,13 +60,21 @@ let runGameManyTimes = (code1, code2, count, cancelList) => {
     let wrapCode2 = wrapCode(code2, 2);
     let results1 = Util.asyncEval(wrapCode1, timeout, cancelList);
     let results2 = Util.asyncEval(wrapCode2, timeout, cancelList);
-    let winCount = Promise.all([results1, results2]).then(moves => Seq.range(count).filter(i => {
-        let refCoin1 = (i & 1) !== 0;
-        let refCoin2 = (i & 2) !== 0;
-        let move1 = moves[0][i];
-        let move2 = moves[1][i];
-        return chsh_outcome(refCoin1, refCoin2, move1, move2);
-    }).count());
+    let winCount = Promise.all([results1, results2]).then(moves => {
+        if (!Array.isArray(moves[0]) ||
+                !Array.isArray(moves[1]) ||
+                moves[0].length !== count ||
+                moves[1].length !== count) {
+            throw new RangeError("Corrupted moves.")
+        }
+        return Seq.range(count).filter(i => {
+            let refCoin1 = (i & 1) !== 0;
+            let refCoin2 = (i & 2) !== 0;
+            let move1 = moves[0][i] === true;
+            let move2 = moves[1][i] === true;
+            return chsh_outcome(refCoin1, refCoin2, move1, move2);
+        }).count();
+    });
     return winCount;
 };
 
@@ -104,7 +118,7 @@ let delayed = (val, delay) => new Promise(resolve => setTimeout(() => resolve(va
 
 let textArea1 = document.getElementById("srcTextArea1");
 let textArea2 = document.getElementById("srcTextArea2");
-let label = document.getElementById("lblTextArea1");
+let label = document.getElementById("lblResults");
 
 let labelEventualSet = setterToPromiseRatchet(text => label.textContent = text);
 let prevCancels = [];
@@ -152,6 +166,3 @@ textArea2.addEventListener("keypress", ref);
 textArea2.addEventListener("paste", ref);
 textArea2.addEventListener("keyup", ref);
 ref();
-
-//interpretify(document.getElementById("srcTextArea1"), document.getElementById("lblTextArea1"));
-//interpretify(document.getElementById("srcTextArea2"), document.getElementById("lblTextArea2"));

@@ -1,18 +1,20 @@
-Quantum Circuit Inspector
-=========================
+Bell Tester
+===========
 
-A visualization and experimentation tool for small quantum circuits. Includes common single-qubit gates, but not many multi-qubit gates (e.g. swap and fourier transform). Supports controlled and time-varying operations. Not much support for customization yet.
+An interactive javascript widget that allows you to try custom classical and quantum strategies for [violating bell inequalities in the CHSH game](https://en.wikipedia.org/wiki/CHSH_inequality).
 
-For example, here is a screenshot of a quantum teleportation circuit. The qubit in A1, which is entangled with B2, is teleported to B1:
+# The CHSH game
 
-![The Inspector](http://i.imgur.com/t1aIye1.png)
+- Two players, A and B, come up with a plan and are then separated
+- Each player is given the result of a coin flip (c_a, c_b) (but not the other player's coin flip)
+- Each player chooses a boolean value (m_a, m_b) (while still separated and knowing only one coin flip)
+- The game is won iff (c_a AND c_B) == (m_a XOR m_b)
 
-The bottom left thing is a representation of the highlighted operation as a matrix. Next to it is a representation of the state after the highlighted operation (each cell is one of the classical states, and the contents represent the amplitude). The bottom right thing is a representation of the final state. Within the circuit, the gates showing percentages are "peek" gates. They are showing the probability of the wire being on (*if* it was measured at that point), both given that the controls are satisfied and in-addition-to the controls being satisfied.
+Classical strategies can't expect to win more than 75% of the time, whereas quantum strategies with pre-shared entanglement can get past 85%.
 
-JSFiddle Instance
-=================
+# Strategies
 
-(Up to date as of Dec 6. Basically just all of the javascript concatenated together.)
+The widget works by taking two pieces of javascript code, one for each player, that assign a value to a variable `move` based on variables `refChoice` and `sharedMoves`.
 
-http://jsfiddle.net/c4f5z73v/2/
+It *should* be difficult to craft malicious javascript that wins by corrupting the game, because the move-choosing code is sandboxed into separate web workers, but feel free to surprise me.
 
