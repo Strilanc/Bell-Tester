@@ -7,9 +7,21 @@
         <script src="../dev/alert_on_error.js"></script>
     </head>
     <body style="margin: 0">
-        <textarea id="srcTextArea1"></textarea>
+        <textarea id="srcTextArea1" rows="10" cols="100">move = false</textarea>
         <br/>
         <label id="lblTextArea1"></label>
+
+        <br/>
+        <br/>
+        <textarea id="srcTextArea2" rows="10" cols="100">move = refChoice && sharedBits[0];
+
+// === Tips and Tricks ===
+//           A coin flip: move = Math.random() < 0.5
+//    Match ref's choice: move = refChoice
+// Use shared randomness: move = sharedBits[0]
+//           Combination: move = refChoice ^ sharedBits[0]</textarea>
+        <br/>
+        <label id="lblTextArea2"></label>
 
         <script src="../out/all_src.js"></script>
     </body>
