@@ -9,7 +9,15 @@ import {
     promiseEventLoopYielder
 } from "test/TestUtil.js"
 
-import { FunctionGroup, delayed, streamGeneratedPromiseResults, ChshGameOutcomeCounts } from "src/lib.js"
+import {
+    FunctionGroup,
+    delayed,
+    streamGeneratedPromiseResults,
+    ChshGameOutcomeCounts,
+    asyncEvalChshGameRuns
+} from "src/lib.js"
+
+import Seq from "src/base/Seq.js"
 
 let suite = new Suite("lib");
 
@@ -255,4 +263,53 @@ suite.test("ChshGameOutcomeCounts_mergedWith", () => {
     assertThat(n4.countForCase(false, false, false, false)).isEqualTo(2);
     assertThat(n4.countForCase(true, true, true, true)).isEqualTo(6);
     assertThat(n4.countPlays()).isEqualTo(8);
+});
+
+suite.test("ChshGameOutcomeCounts_isEqualTo", () => {
+    let k1 = ChshGameOutcomeCounts.caseToKey(false, false, false, false);
+    let k2 = ChshGameOutcomeCounts.caseToKey(true, true, true, true);
+    let n1 = () => ChshGameOutcomeCounts.fromCountsByMap(new Map([[k1, 2]]));
+    let n2 = () => ChshGameOutcomeCounts.fromCountsByMap(new Map([[k2, 3]]));
+    let n3 = () => ChshGameOutcomeCounts.fromCountsByMap(new Map([[k2, 2]]));
+    let groups = [
+        [new ChshGameOutcomeCounts(), new ChshGameOutcomeCounts()],
+        [n1(), n1()],
+        [n2(), n2()],
+        [n3(), n3()],
+        [n2().mergedWith(n3()), n2().mergedWith(n3())]
+    ];
+    for (let g1 of groups) {
+        for (let g2 of groups) {
+            for (let e1 of g1) {
+                for (let e2 of g2) {
+                    assertThat(e1.isEqualTo(e2)).isEqualTo(g1 === g2);
+                }
+            }
+        }
+    }
+
+    // interop works?
+    assertThat(new ChshGameOutcomeCounts()).isEqualTo(new ChshGameOutcomeCounts());
+});
+
+suite.test("asyncEvalChshGameRuns", () => {
+    let out = s => ChshGameOutcomeCounts.fromCountsByMap(
+        new Seq(s).countBy(i => ChshGameOutcomeCounts.caseToKey(i & 1, i & 2, i & 4, i & 8)));
+    let c = [];
+    let r = Promise.all([
+        willResolveTo(asyncEvalChshGameRuns("move=false", "move=false", 4), out([0, 1, 2, 3])),
+        willResolveTo(asyncEvalChshGameRuns("move=false", "move=true", 4), out([8, 9, 10, 11])),
+        willResolveTo(asyncEvalChshGameRuns("move=refChoice", "move=true", 4), out([8, 13, 10, 15])),
+        willResolveTo(asyncEvalChshGameRuns("move=refChoice", "move=true", 8), out([8, 8, 13, 13, 10, 10, 15, 15])),
+        // Timeout.
+        willReject(asyncEvalChshGameRuns("while(true);", "move=true", 1, 10)),
+        // Parse error.
+        willReject(asyncEvalChshGameRuns("{", "move=true", 1)),
+        // Throw.
+        willReject(asyncEvalChshGameRuns("throw 1;", "move=true", 1)),
+        // Cancellation.
+        willReject(asyncEvalChshGameRuns("while(true);", "move=true", 1, Infinity, 16, e => c.push(e)))
+    ]);
+    for (let e of c) e();
+    return r;
 });
