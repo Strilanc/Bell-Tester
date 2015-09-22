@@ -731,3 +731,16 @@ suite.test("breadthFirstSearch", () => {
     assertThat(new Seq([1, 4]).breadthFirstSearch(e => e >= 10 ? [] : [e*2, e*2+1], e => e % 3)).iteratesAs(
         1, 2, 3);
 });
+
+suite.test("countBy", () => {
+    assertThat(new Seq([]).countBy(() => { throw new Error(); })).isEqualTo(new Map());
+
+    assertThat(new Seq([2]).countBy(e => e % 10)).isEqualTo(new Map([[2, 1]]));
+    assertThat(new Seq([2, 12]).countBy(e => e % 10)).isEqualTo(new Map([[2, 2]]));
+    assertThat(new Seq([2, 12, 33]).countBy(e => e % 10)).isEqualTo(new Map([[2, 2], [3, 1]]));
+
+    assertThat(new Seq([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).countBy(e => e % 3)).isEqualTo(new Map([
+        [0, 4],
+        [1, 4],
+        [2, 3]]));
+});

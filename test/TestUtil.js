@@ -191,6 +191,25 @@ export function assertThat(subject, extraArgCatcher) {
     return new AssertionSubject(subject);
 }
 
+/**
+ * Used as a way to yield
+ */
+export function promiseEventLoopYielder(generator) {
+    return new Promise((res, rej) => {
+        let g = generator();
+        let advance = () => {
+            try {
+                let r = g.next();
+                if (r.done) res(undefined);
+                setTimeout(advance, 0);
+            } catch (ex) {
+                rej(ex);
+            }
+        };
+        advance();
+    });
+}
+
 export function assertTrue(subject) {
     assertThat(subject).isEqualTo(true);
 }

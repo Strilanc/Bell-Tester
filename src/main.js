@@ -2,27 +2,24 @@ import Config from "src/Config.js"
 import describe from "src/base/Describe.js"
 import Seq from "src/base/Seq.js"
 import Util from "src/base/Util.js"
+import { FunctionGroup, delayed, streamGeneratedPromiseResults, ChshGameOutcomeCounts } from "src/lib.js";
 
-let timeout = 2000; // millis
-let showWorkingGracePeriod = 250; // millis
-let showErrorGracePeriod = 50; // millis
-
-let chsh_outcome = (refA, refB, moveA, moveB) => (moveA !== moveB) === (refA && refB);
+const ASYNC_EVAL_TIMEOUT = 2000; // millis
+const SHOW_BUSY_GRACE_PERIOD = 250; // millis
+const SHOW_ERR_GRACE_PERIOD = 50; // millis
+const SHARED_BIT_COUNT = 16;
 
 let worldsWorstSandbox = code => `(function() { eval(${JSON.stringify(code)}); }());`;
 
-let coinFlip = () => Math.random() < 0.5;
-
-let runGameManyTimes = (code1, code2, count, cancelList) => {
+let runGameManyTimes = (code1, code2, count, cancelTaker) => {
     // Note: not guaranteed protection. The web worker could have access to the same entropy or to reflection.
     let dontTouchMyStuffSuffix = Seq.range(10).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
     let pk = `__i_${dontTouchMyStuffSuffix}`;
     let pb = `__shared_${dontTouchMyStuffSuffix}`;
     let pm = `__moves_${dontTouchMyStuffSuffix}`;
 
-    let sharedBitsPer = 16;
     let allSharedBitsArrayText = describe(Seq.range(count).
-        map(() => Math.floor(Math.random() * (1 << sharedBitsPer))).
+        map(() => Math.floor(Math.random() * (1 << SHARED_BIT_COUNT))).
         toArray());
 
     let wrapCode = (code, refCoinMask) => `
@@ -31,11 +28,14 @@ let runGameManyTimes = (code1, code2, count, cancelList) => {
         for (var ${pk} = 0; ${pk} < ${count}; ${pk}++) {
             var sharedBits = [];
             var i;
-            for (i = 0; i < ${sharedBitsPer}; i++) {
+            for (i = 0; i < ${SHARED_BIT_COUNT}; i++) {
                 sharedBits.push((${pb}[${pk}] & (1 << i)) !== 0);
             }
             i = undefined;
 
+            // By cycling through the cases, instead of choosing randomly, we get much more even coverage.
+            // In particular, when the strategy is deterministic this guarantees we get the exact expected value.
+            // (As long as the number of plays is a multiple of 4.)
             var refChoice = (${pk} & ${refCoinMask}) !== 0;
 
             // Be forgiving.
@@ -58,24 +58,23 @@ let runGameManyTimes = (code1, code2, count, cancelList) => {
 
     let wrapCode1 = wrapCode(code1, 1);
     let wrapCode2 = wrapCode(code2, 2);
-    let results1 = Util.asyncEval(wrapCode1, timeout, cancelList);
-    let results2 = Util.asyncEval(wrapCode2, timeout, cancelList);
-    let winCount = Promise.all([results1, results2]).then(moves => {
+    let results1 = Util.asyncEval(wrapCode1, ASYNC_EVAL_TIMEOUT, cancelTaker);
+    let results2 = Util.asyncEval(wrapCode2, ASYNC_EVAL_TIMEOUT, cancelTaker);
+    return Promise.all([results1, results2]).then(moves => {
         if (!Array.isArray(moves[0]) ||
                 !Array.isArray(moves[1]) ||
                 moves[0].length !== count ||
                 moves[1].length !== count) {
             throw new RangeError("Corrupted moves.")
         }
-        return Seq.range(count).filter(i => {
+        return ChshGameOutcomeCounts.fromCountsByMap(Seq.range(count).map(i => {
             let refCoin1 = (i & 1) !== 0;
             let refCoin2 = (i & 2) !== 0;
             let move1 = moves[0][i] === true;
             let move2 = moves[1][i] === true;
-            return chsh_outcome(refCoin1, refCoin2, move1, move2);
-        }).count();
+            return ChshGameOutcomeCounts.caseToKey(refCoin1, refCoin2, move1, move2);
+        }).countBy(e => e));
     });
-    return winCount;
 };
 
 let setterToPromiseRatchet = setter => {
@@ -94,34 +93,13 @@ let setterToPromiseRatchet = setter => {
     };
 };
 
-let streamPromise = (promiser, capacity, max, valueConsumer, errorConsumer) => {
-    let cancelled = false;
-    let runs = 0;
-    let add = () => {
-        if (cancelled) return;
-        if (runs >= max) return;
-        let p = promiser(runs);
-        runs += 1;
-        p.then(e => {
-            if (cancelled) return;
-            valueConsumer(e);
-            add();
-        }, errorConsumer);
-    };
-    for (let i = 0; i < capacity; i++) {
-        add();
-    }
-    return () => cancelled = true;
-};
-
-let delayed = (val, delay) => new Promise(resolve => setTimeout(() => resolve(val), delay));
-
 let textArea1 = document.getElementById("srcTextArea1");
 let textArea2 = document.getElementById("srcTextArea2");
 let label = document.getElementById("lblResults");
 
 let labelEventualSet = setterToPromiseRatchet(text => label.textContent = text);
-let prevCancels = [];
+let cancellor = new FunctionGroup();
+let cancellorAdd = canceller => cancellor.add(canceller);
 let lastText1 = undefined;
 let lastText2 = undefined;
 let ref = () => {
@@ -133,26 +111,24 @@ let ref = () => {
     lastText1 = s1;
     lastText2 = s2;
 
-    for (let e of prevCancels) {
-        e();
-    }
-    prevCancels = [];
+    cancellor.runAndClear();
 
-    let winCount = 0;
-    let playCount = 0;
+    let outcomes = new ChshGameOutcomeCounts();
 
-    let c = streamPromise(() => {
-        return runGameManyTimes(s1, s2, 1000, prevCancels);
-    }, 2, 100, r => {
-        playCount += 1000;
-        winCount += r;
-        let p = winCount/playCount;
-        let s = Math.sqrt(p*(1-p)/playCount);
-        labelEventualSet(Promise.resolve(winCount + "/" + playCount + "; ~" + (100*p).toFixed(1) + "% (\u00B1" + (300*s).toFixed(1) + "%)"));
-    }, ex => {
-        labelEventualSet(delayed(ex, showErrorGracePeriod));
-    });
-    prevCancels.push(c);
+    streamGeneratedPromiseResults(
+        () => runGameManyTimes(s1, s2, 1000, cancellorAdd),
+        partialOutcomes => {
+            outcomes = outcomes.mergedWith(partialOutcomes);
+            let playCount = outcomes.countPlays();
+            let winCount = outcomes.countWins();
+            let p = winCount/playCount;
+            let s = Math.sqrt(p*(1-p)/playCount);
+            labelEventualSet(Promise.resolve(winCount + "/" + playCount + "; ~" + (100*p).toFixed(1) + "% (\u00B1" + (300*s).toFixed(1) + "%)"));
+        },
+        ex => labelEventualSet(delayed(ex, SHOW_ERR_GRACE_PERIOD)),
+        100,
+        2,
+        cancellorAdd);
 };
 
 textArea1.addEventListener("change", ref);

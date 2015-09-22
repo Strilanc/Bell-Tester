@@ -150,11 +150,12 @@ export default class Util {
      * Note that this is NOT intended to be used as a secure sandbox for safely running potentially malicious code.
      *
      * @param {!string} codeText The string passed to 'eval' in the web worker.
-     * @param {!number} timeout The maximum number of milliseconds the web worker is allowed to run before being terminated. Pass
+     * @param {!number=} timeout The maximum number of milliseconds the web worker is allowed to run before being terminated. Pass
      * 'Infinity' if you don't want a timeout.
-     * @param {!(!Array).<!function>} cancelList An array to which a function to kill the web-worker will be added.
+     * @param {!function(!function(void):void):void=} cancelTaker A function that accepts cancellers for the async eval;
+     * running the functions passed to the cancelTaker function will cancel the asyncEval.
      */
-    static asyncEval(codeText, timeout=Infinity, cancelList=[]) {
+    static asyncEval(codeText, timeout=Infinity, cancelTaker=undefined) {
         return new Promise((resolve, reject) => {
             let workerCode = `postMessage(eval(${JSON.stringify(codeText)}));`;
             let blob = new Blob([workerCode], {type: 'text/javascript'});
@@ -189,10 +190,12 @@ export default class Util {
                 }, timeout));
             }
 
-            cancelList.push(() => {
-                reject('Cancelled');
-                cleanup();
-            });
+            if (cancelTaker !== undefined) {
+                cancelTaker(() => {
+                    reject('Cancelled');
+                    cleanup();
+                });
+            }
         });
     }
 }

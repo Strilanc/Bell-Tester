@@ -164,7 +164,7 @@ suite.test("asyncEval", () => {
         willReject(Util.asyncEval("while (true) {}", 50)),
 
         // infinite loop (cancelled)
-        willReject(Util.asyncEval("while (true) {}", Infinity, cancellers))
+        willReject(Util.asyncEval("while (true) {}", Infinity, e => cancellers.push(e)))
     ]);
     for (let f of cancellers) {
         f();
