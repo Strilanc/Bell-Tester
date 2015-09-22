@@ -42,9 +42,10 @@ suite.test("FunctionGroup_interaction", () => {
     assertThat(i).isEqualTo(3);
 });
 
-suite.test("delayed", () => {
-    return willResolveTo(delayed("x", 1), "x");
-});
+suite.test("delayed", () => Promise.all([
+    willResolveTo(delayed("x", 1), "x"),
+    willReject(delayed("x", 1, true))
+]));
 
 suite.test("streamGeneratedPromiseResults_default", () => promiseEventLoopYielder(function*() {
     let resolvers = [];

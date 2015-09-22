@@ -13,10 +13,11 @@ import {
 const ASYNC_EVAL_TIMEOUT = 2000; // millis
 const SHOW_BUSY_GRACE_PERIOD = 250; // millis
 const SHOW_ERR_GRACE_PERIOD = 50; // millis
-const SHARED_BIT_COUNT = 16;
+const SHARED_BIT_COUNT = 16; // number of shared classical bits given to each player
 const GAME_RUNS_PER_CHUNK = 1000;
 const RUN_CHUNK_COUNT = 100;
-const RUN_CONCURRENCY = 2;
+const RUN_CONCURRENCY = 2; // Caution: chrome seems to dislike too many concurrent web workers. By crashing.
+const TABLE_CELL_SPAN = 50;
 
 
 let setterToPromiseRatchet = setter => {
@@ -26,11 +27,17 @@ let setterToPromiseRatchet = setter => {
         let id = nextId;
         nextId = (nextId + 1) & 0xFFFF;
         promise.then(e => {
-            // http://algorithmicassertions.com/math/2014/03/11/Ordering-Cyclic-Sequence-Numbers.html
+            // Never switch to an older result from a more recent one.
             let isLate = ((latestCompletedId - id) & 0xFFFF) < 0x8FFF;
             if (isLate) return;
             latestCompletedId = id;
             setter(e);
+        }, ex => {
+            // Never switch to showing an error that's already stale.
+            let isNotLatestSet = ((id + 1) & 0xFFFF) !== nextId;
+            if (isNotLatestSet) return;
+            latestCompletedId = id;
+            setter(ex);
         });
     };
 };
@@ -63,10 +70,44 @@ let ref = () => {
             let playCount = outcomes.countPlays();
             let winCount = outcomes.countWins();
             let p = winCount/playCount;
-            let s = Math.sqrt(p*(1-p)/playCount);
-            labelEventualSet(Promise.resolve(winCount + "/" + playCount + "; ~" + (100*p).toFixed(1) + "% (\u00B1" + (300*s).toFixed(1) + "%)"));
+            let sampleStdDev = Math.sqrt(p*(1-p)/Math.max(1, playCount-1));
+            let tolerance = 3*sampleStdDev;
+            let msg = `${winCount}/${playCount}; ~${(100*p).toFixed(1)}% (\u00B1${(tolerance*100).toFixed(1)}%)`;
+            let canvas = document.getElementById("drawCanvas");
+            let ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, 4*TABLE_CELL_SPAN+10, 4*TABLE_CELL_SPAN+10);
+            for (let i = 0; i < 16; i++) {
+                let ref1 = (i & 2) !== 0;
+                let ref2 = (i & 8) !== 0;
+                let move1 = (i & 1) !== 0;
+                let move2 = (i & 4) !== 0;
+                let m = outcomes.countForCase(ref1, ref2, move1, move2);
+                let b = ChshGameOutcomeCounts.caseToIsWin(ref1, ref2, move1, move2);
+                let q = 4 * m / playCount;
+                let h = q*TABLE_CELL_SPAN;
+                let x = (i & 3) * TABLE_CELL_SPAN;
+                let y = ((i & 0xC) >> 2) * TABLE_CELL_SPAN;
+                ctx.fillStyle = b ? '#CFC' : '#FCC';
+                ctx.fillRect(x, y, TABLE_CELL_SPAN, TABLE_CELL_SPAN);
+                ctx.fillStyle = b ? '#0F0' : '#F66';
+                ctx.fillRect(x, y + TABLE_CELL_SPAN - h, TABLE_CELL_SPAN, h);
+                ctx.font = "10pt Helvetica";
+                let s = m.toString();
+                ctx.fillStyle = 'black';
+                ctx.fillText(s, x + TABLE_CELL_SPAN/2 - ctx.measureText(s).width/2, y + TABLE_CELL_SPAN/2 + 6);
+            }
+            for (let i = 1; i < 4; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, i*TABLE_CELL_SPAN);
+                ctx.lineTo(4*TABLE_CELL_SPAN, i*TABLE_CELL_SPAN);
+                ctx.moveTo(i*TABLE_CELL_SPAN, 0);
+                ctx.lineTo(i*TABLE_CELL_SPAN, 4*TABLE_CELL_SPAN);
+                ctx.lineWidth = i === 2 ? 2 : 0.5;
+                ctx.stroke();
+            }
+            labelEventualSet(Promise.resolve(msg));
         },
-        ex => labelEventualSet(delayed(ex, SHOW_ERR_GRACE_PERIOD)),
+        ex => labelEventualSet(delayed(ex, SHOW_ERR_GRACE_PERIOD, true)),
         RUN_CHUNK_COUNT,
         RUN_CONCURRENCY,
         cancellorAdd);

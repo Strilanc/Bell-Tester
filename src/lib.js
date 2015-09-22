@@ -25,11 +25,13 @@ export class FunctionGroup {
  * Returns a promise that will resolve with the given value after the given delay.
  * @param {T} value The promise's eventual result.
  * @param {number} delayMillis The amount of time, in milliseconds, before the promise completes.
+ * @param {boolean} rejectInsteadOfResolving Cause the promise to reject with the given value, instead of resolving.
  * @returns {!Promise.<T>}
  * @template T
  */
-export function delayed(value, delayMillis) {
-    return new Promise(resolve => setTimeout(() => resolve(value), delayMillis));
+export function delayed(value, delayMillis, rejectInsteadOfResolving=false) {
+    return new Promise((resolve, reject) =>
+        setTimeout(() => (rejectInsteadOfResolving ? reject : resolve)(value), delayMillis));
 }
 
 /**
