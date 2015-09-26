@@ -447,5 +447,4 @@ suite.test("asyncifyProgressReporter_overlapResolveRejectBlockStaleErr", () => p
     yield undefined;
     assertThat(a).isEqualTo(["b"]);
     assertThat(b).isEqualTo([true]);
-    assertTrue(false);
 }));
