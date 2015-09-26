@@ -215,6 +215,8 @@ export function asyncEvalChshGameRuns(
             var ref_choice = refChoice;
             var sharedbits = sharedBits;
             var shared_bits = sharedBits;
+            var True = true;
+            var False = false;
 
             var move = undefined;
             ${worldsWorstSandbox(code)}

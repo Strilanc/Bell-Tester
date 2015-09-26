@@ -240,7 +240,7 @@ export function willReject(future) {
  */
 export function assertThrows(func, extraArgCatcher) {
     if (extraArgCatcher !== undefined) {
-        fail('Extra assertThat arg');
+        fail('Extra assertThrows arg');
     }
     try {
         func();
