@@ -14,7 +14,8 @@ import {
     delayed,
     streamGeneratedPromiseResults,
     ChshGameOutcomeCounts,
-    asyncEvalChshGameRuns
+    asyncEvalChshGameRuns,
+    asyncifyProgressReporter
 } from "src/lib.js"
 
 import Seq from "src/base/Seq.js"
@@ -314,3 +315,112 @@ suite.test("asyncEvalChshGameRuns", () => {
     for (let e of c) e();
     return r;
 });
+
+suite.test("asyncifyProgressReporter_oneByOne", () => promiseEventLoopYielder(function*() {
+    let a = [];
+    let f = asyncifyProgressReporter(e => a.push(e));
+    yield undefined;
+    assertThat(a).isEqualTo([]);
+
+    f(Promise.resolve("a"));
+    yield undefined;
+    assertThat(a).isEqualTo(["a"]);
+
+    f(Promise.reject("b"));
+    yield undefined;
+    assertThat(a).isEqualTo(["a", "b"]);
+}));
+
+suite.test("asyncifyProgressReporter_overlapResolveInOrder", () => promiseEventLoopYielder(function*() {
+    let a = [];
+    let f = asyncifyProgressReporter(e => a.push(e));
+    let res1 = undefined;
+    let res2 = undefined;
+    f(new Promise(r => res1 = r));
+    f(new Promise(r => res2 = r));
+    yield undefined;
+    assertThat(a).isEqualTo([]);
+
+    res1("a");
+    yield undefined;
+    assertThat(a).isEqualTo(["a"]);
+
+    res2("b");
+    yield undefined;
+    assertThat(a).isEqualTo(["a", "b"]);
+}));
+
+suite.test("asyncifyProgressReporter_overlapResolveOutOfOrder", () => promiseEventLoopYielder(function*() {
+    let a = [];
+    let f = asyncifyProgressReporter(e => a.push(e));
+    let res1 = undefined;
+    let res2 = undefined;
+    f(new Promise(r => res1 = r));
+    f(new Promise(r => res2 = r));
+    yield undefined;
+    assertThat(a).isEqualTo([]);
+
+    res2("a");
+    yield undefined;
+    assertThat(a).isEqualTo(["a"]);
+
+    res1("b");
+    yield undefined;
+    assertThat(a).isEqualTo(["a"]);
+}));
+
+suite.test("asyncifyProgressReporter_overlapRejectInOrder", () => promiseEventLoopYielder(function*() {
+    let a = [];
+    let f = asyncifyProgressReporter(e => a.push(e));
+    let rej1 = undefined;
+    let rej2 = undefined;
+    f(new Promise((_, r) => rej1 = r));
+    f(new Promise((_, r) => rej2 = r));
+    yield undefined;
+    assertThat(a).isEqualTo([]);
+
+    rej1("a");
+    yield undefined;
+    assertThat(a).isEqualTo([]);
+
+    rej2("b");
+    yield undefined;
+    assertThat(a).isEqualTo(["b"]);
+}));
+
+suite.test("asyncifyProgressReporter_overlapRejectOutOfOrderBlockStaleErr", () => promiseEventLoopYielder(function*() {
+    let a = [];
+    let f = asyncifyProgressReporter(e => a.push(e));
+    let rej1 = undefined;
+    let rej2 = undefined;
+    f(new Promise((_, r) => rej1 = r));
+    f(new Promise((_, r) => rej2 = r));
+    assertThat(a).isEqualTo([]);
+
+    rej2("a");
+    yield undefined;
+    assertThat(a).isEqualTo(["a"]);
+
+    rej1("b");
+    yield undefined;
+    assertThat(a).isEqualTo(["a"]);
+}));
+
+suite.test("asyncifyProgressReporter_overlapResolveRejectBlockStaleErr", () => promiseEventLoopYielder(function*() {
+    let a = [];
+    let f = asyncifyProgressReporter(e => a.push(e));
+    let rej = undefined;
+    let res = undefined;
+    f(new Promise((_, r) => rej = r));
+    f(new Promise(r => res = r));
+    yield undefined;
+    assertThat(a).isEqualTo([]);
+
+    rej("a");
+    yield undefined;
+    assertThat(a).isEqualTo([]);
+
+    res("b");
+    yield undefined;
+    assertThat(a).isEqualTo(["b"]);
+}));

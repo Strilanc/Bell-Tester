@@ -248,3 +248,33 @@ export function asyncEvalChshGameRuns(
         }).countBy(e => e));
     });
 }
+
+/**
+ * Returns a wrapped version of the given progress reporting function that takes promises instead of raw values and
+ * ensures that progress on earlier promises is ignored once more recent promise results are available.
+ *
+ * @param {!function(T)} progressReporter
+ * @returns !function(!Promise.<T>)
+ * @template T
+ */
+export function asyncifyProgressReporter(progressReporter) {
+    let latestCompletedId = 0;
+    let nextId = 1; // 16 bit cyclic counter.
+    return promise => {
+        let id = nextId;
+        nextId = (nextId + 1) & 0xFFFF;
+        promise.then(e => {
+            // Never switch to an older result from a more recent one.
+            let isLate = ((latestCompletedId - id) & 0xFFFF) < 0x8FFF;
+            if (isLate) return;
+            latestCompletedId = id;
+            progressReporter(e);
+        }, ex => {
+            // Never switch to showing an error that's already stale.
+            let isNotLatestSet = ((id + 1) & 0xFFFF) !== nextId;
+            if (isNotLatestSet) return;
+            latestCompletedId = id;
+            progressReporter(ex);
+        });
+    };
+}

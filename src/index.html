@@ -2,24 +2,48 @@
 <html>
     <head lang="en">
         <meta charset="UTF-8">
-        <title>Quantum Circuit Inspector</title>
+        <title>Bell Tester</title>
 
         <script src="../dev/alert_on_error.js"></script>
     </head>
-    <body style="margin: 0">
-        <textarea id="srcTextArea1" rows="7" style="width:40%; min-width: 400px;">move = false</textarea>
-        <textarea id="srcTextArea2" rows="7" style="width:40%; min-width: 400px;">move = refChoice && sharedBits[0];
+    <body>
+    <div style="width: 820px; border: 1px solid black">
+        <div style="text-align: center;">
+            sharedBits = [Math.random() < 0.5, Math.random() < 0.5, ...
+        </div>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+        <div style="display: inline-block; text-align: left;">
+            <div>
+                ALICE
+                <br/>
+                refChoice = ??? // False, or True.
+            </div>
+            <textarea id="srcTextArea1" rows="5" style="width:400px;">move = false</textarea>
+        </div>
+        <div style="display: inline-block; text-align: right;">
+            <div style="text-align: left;">
+                BOB
+                <br/>
+                refChoice = ??? // False, or True.
+            </div>
+            <textarea id="srcTextArea2" rows="5" style="width:400px;">move = refChoice && sharedBits[0];</textarea>
+        </div>
 
-// === Tips and Tricks ===
-//           A coin flip: move = Math.random() < 0.5
-//    Match ref's choice: move = refChoice
-// Use shared randomness: move = sharedBits[0]
-//           Combination: move = refChoice ^ sharedBits[0]</textarea>
         <br/>
-        <label id="lblResults"></label>
         <br/>
-        <canvas id="drawCanvas" width="400px" height="400px"></canvas>
+        <br/>
+        <br/>
+        <br/>
+        <div style="text-align: center;">
+            <label id="lblResults"></label>
+            <br/>
+            <canvas id="drawCanvas" width="370px" height="370px"></canvas>
+        </div>
 
         <script src="../out/all_src.js"></script>
+    </div>
     </body>
 </html>
