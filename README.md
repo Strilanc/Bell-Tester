@@ -1,6 +1,8 @@
 Bell Tester
 ===========
 
+[![Build Status](https://travis-ci.org/Strilanc/Bell-Tester.svg)](https://travis-ci.org/Strilanc/Bell-Tester)
+
 An interactive javascript widget that allows you to try custom classical and quantum strategies for [violating bell inequalities in the CHSH game](https://en.wikipedia.org/wiki/CHSH_inequality).
 
 # The CHSH game
