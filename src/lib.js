@@ -221,7 +221,7 @@ export function asyncEvalChshGameRuns(
 
             // Loose equality is on purpose, so people entering 'x ^ y' don't get an error.
             if (!(move == true) && !(move == false)) {
-                throw new Error("move ended up " + move + " instead of true or false");
+                throw new Error("'move' variable ended up " + move + " instead of true or false");
             }
             ${pm}.push(move == true);
         };
@@ -253,7 +253,7 @@ export function asyncEvalChshGameRuns(
  * Returns a wrapped version of the given progress reporting function that takes promises instead of raw values and
  * ensures that progress on earlier promises is ignored once more recent promise results are available.
  *
- * @param {!function(T)} progressReporter
+ * @param {!function(T, boolean)} progressReporter
  * @returns !function(!Promise.<T>)
  * @template T
  */
@@ -268,13 +268,13 @@ export function asyncifyProgressReporter(progressReporter) {
             let isLate = ((latestCompletedId - id) & 0xFFFF) < 0x8FFF;
             if (isLate) return;
             latestCompletedId = id;
-            progressReporter(e);
+            progressReporter(e, true);
         }, ex => {
             // Never switch to showing an error that's already stale.
             let isNotLatestSet = ((id + 1) & 0xFFFF) !== nextId;
             if (isNotLatestSet) return;
             latestCompletedId = id;
-            progressReporter(ex);
+            progressReporter(ex, false);
         });
     };
 }

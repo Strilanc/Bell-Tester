@@ -318,109 +318,133 @@ suite.test("asyncEvalChshGameRuns", () => {
 
 suite.test("asyncifyProgressReporter_oneByOne", () => promiseEventLoopYielder(function*() {
     let a = [];
-    let f = asyncifyProgressReporter(e => a.push(e));
+    let b = [];
+    let f = asyncifyProgressReporter((e, v) => { a.push(e); b.push(v); });
     yield undefined;
     assertThat(a).isEqualTo([]);
+    assertThat(b).isEqualTo([]);
 
     f(Promise.resolve("a"));
     yield undefined;
     assertThat(a).isEqualTo(["a"]);
+    assertThat(b).isEqualTo([true]);
 
     f(Promise.reject("b"));
     yield undefined;
     assertThat(a).isEqualTo(["a", "b"]);
+    assertThat(b).isEqualTo([true, false]);
 }));
 
 suite.test("asyncifyProgressReporter_overlapResolveInOrder", () => promiseEventLoopYielder(function*() {
     let a = [];
-    let f = asyncifyProgressReporter(e => a.push(e));
+    let b = [];
+    let f = asyncifyProgressReporter((e, v) => { a.push(e); b.push(v); });
     let res1 = undefined;
     let res2 = undefined;
     f(new Promise(r => res1 = r));
     f(new Promise(r => res2 = r));
     yield undefined;
     assertThat(a).isEqualTo([]);
+    assertThat(b).isEqualTo([]);
 
     res1("a");
     yield undefined;
     assertThat(a).isEqualTo(["a"]);
+    assertThat(b).isEqualTo([true]);
 
     res2("b");
     yield undefined;
     assertThat(a).isEqualTo(["a", "b"]);
+    assertThat(b).isEqualTo([true, true]);
 }));
 
 suite.test("asyncifyProgressReporter_overlapResolveOutOfOrder", () => promiseEventLoopYielder(function*() {
     let a = [];
-    let f = asyncifyProgressReporter(e => a.push(e));
+    let b = [];
+    let f = asyncifyProgressReporter((e, v) => { a.push(e); b.push(v); });
     let res1 = undefined;
     let res2 = undefined;
     f(new Promise(r => res1 = r));
     f(new Promise(r => res2 = r));
     yield undefined;
     assertThat(a).isEqualTo([]);
+    assertThat(b).isEqualTo([]);
 
     res2("a");
     yield undefined;
     assertThat(a).isEqualTo(["a"]);
+    assertThat(b).isEqualTo([true]);
 
     res1("b");
     yield undefined;
     assertThat(a).isEqualTo(["a"]);
+    assertThat(b).isEqualTo([true]);
 }));
 
 suite.test("asyncifyProgressReporter_overlapRejectInOrder", () => promiseEventLoopYielder(function*() {
     let a = [];
-    let f = asyncifyProgressReporter(e => a.push(e));
+    let b = [];
+    let f = asyncifyProgressReporter((e, v) => { a.push(e); b.push(v); });
     let rej1 = undefined;
     let rej2 = undefined;
     f(new Promise((_, r) => rej1 = r));
     f(new Promise((_, r) => rej2 = r));
     yield undefined;
     assertThat(a).isEqualTo([]);
+    assertThat(b).isEqualTo([]);
 
     rej1("a");
     yield undefined;
     assertThat(a).isEqualTo([]);
+    assertThat(b).isEqualTo([]);
 
     rej2("b");
     yield undefined;
     assertThat(a).isEqualTo(["b"]);
+    assertThat(b).isEqualTo([false]);
 }));
 
 suite.test("asyncifyProgressReporter_overlapRejectOutOfOrderBlockStaleErr", () => promiseEventLoopYielder(function*() {
     let a = [];
-    let f = asyncifyProgressReporter(e => a.push(e));
+    let b = [];
+    let f = asyncifyProgressReporter((e, v) => { a.push(e); b.push(v); });
     let rej1 = undefined;
     let rej2 = undefined;
     f(new Promise((_, r) => rej1 = r));
     f(new Promise((_, r) => rej2 = r));
     assertThat(a).isEqualTo([]);
+    assertThat(b).isEqualTo([]);
 
     rej2("a");
     yield undefined;
     assertThat(a).isEqualTo(["a"]);
+    assertThat(b).isEqualTo([false]);
 
     rej1("b");
     yield undefined;
     assertThat(a).isEqualTo(["a"]);
+    assertThat(b).isEqualTo([false]);
 }));
 
 suite.test("asyncifyProgressReporter_overlapResolveRejectBlockStaleErr", () => promiseEventLoopYielder(function*() {
     let a = [];
-    let f = asyncifyProgressReporter(e => a.push(e));
+    let b = [];
+    let f = asyncifyProgressReporter((e, v) => { a.push(e); b.push(v); });
     let rej = undefined;
     let res = undefined;
     f(new Promise((_, r) => rej = r));
     f(new Promise(r => res = r));
     yield undefined;
     assertThat(a).isEqualTo([]);
+    assertThat(b).isEqualTo([]);
 
     rej("a");
     yield undefined;
     assertThat(a).isEqualTo([]);
+    assertThat(b).isEqualTo([]);
 
     res("b");
     yield undefined;
     assertThat(a).isEqualTo(["b"]);
+    assertThat(b).isEqualTo([true]);
 }));

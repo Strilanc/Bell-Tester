@@ -7,40 +7,83 @@
         <script src="../dev/alert_on_error.js"></script>
     </head>
     <body>
-    <div style="width: 820px; border: 1px solid black">
-        <div style="text-align: center;">
-            sharedBits = [Math.random() < 0.5, Math.random() < 0.5, ...
-        </div>
+    <div style="width: 850px; border: 1px solid black">
+        <table align="center" style="background-color: #EEE;">
+            <tr>
+                <td align="left">
+                    // === Alice and Bob agree on a plan ===<br/>
+                    // they share some correlated random coin flips, to be looked at later<br/>
+                    var sharedBits = [Math.random() < 0.5, Math.random() < 0.5, …]
+                </td>
+            </tr>
+        </table>
         <br/>
         <br/>
         <br/>
         <br/>
-        <div style="display: inline-block; text-align: left;">
+        <div style="display: inline-block; background-color: #DDD; padding: 4px; margin: 4px;">
             <div>
-                ALICE
+                var refChoice = true or false
                 <br/>
-                refChoice = ??? // False, or True.
+                // === ALICE'S STRATEGY ===
+                <br/>
+                var move;
             </div>
-            <textarea id="srcTextArea1" rows="5" style="width:400px;">move = false</textarea>
+            <textarea id="srcTextArea1" rows="5" style="width:400px;">// write any strategy you want!
+move = false</textarea><br/>
         </div>
-        <div style="display: inline-block; text-align: right;">
+        <div style="display: inline-block; text-align: right; background-color: #DDD; padding: 4px; margin: 4px;">
             <div style="text-align: left;">
-                BOB
+                var refChoice = true or false
                 <br/>
-                refChoice = ??? // False, or True.
+                // === BOB'S STRATEGY ===
+                <br/>
+                var move;
             </div>
-            <textarea id="srcTextArea2" rows="5" style="width:400px;">move = refChoice && sharedBits[0];</textarea>
+            <textarea id="srcTextArea2" rows="5" style="width:400px;">// write any strategy you want!
+move = refChoice && sharedBits[0];</textarea><br/>
         </div>
 
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
         <div style="text-align: center;">
-            <label id="lblResults"></label>
-            <br/>
-            <canvas id="drawCanvas" width="370px" height="370px"></canvas>
+            <label id="errorLabel" style="font: 16pt bold Helvetica; color: red"></label><br/>
+        </div>
+        <div id="resultsDiv" style="text-align: center;">
+            <table align="center" style="background-color: #EEE;">
+                <tr>
+                    <td align="right">
+                        Estimated Win Rate:
+                    </td>
+                    <td align="left">
+                        <label id="rateLabel" style="font-weight: bold;"></label>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="right">
+                        Violated Bell Inequality:
+                    </td>
+                    <td align="left">
+                        <label id="judgementLabel" style="font-weight: bold;"></label>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="right">
+                        Measured Wins:
+                    </td>
+                    <td align="left">
+                        <label id="countLabel"></label>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="right">
+                        Full Breakdown:
+                    </td>
+                    <td align="left">
+                        <canvas id="drawCanvas" width="370px" height="370px"></canvas>
+                    </td>
+                </tr>
+            </table>
+
+
         </div>
 
         <script src="../out/all_src.js"></script>
