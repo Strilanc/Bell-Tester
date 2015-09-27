@@ -2,10 +2,12 @@ import {
     FunctionGroup,
     delayed,
     streamGeneratedPromiseResults,
-    ChshGameOutcomeCounts,
-    asyncEvalChshGameRuns,
     asyncifyProgressReporter
-} from 'src/engine/lib.js'
+} from 'src/engine/async.js'
+import {
+    ChshGameOutcomeCounts,
+    asyncEvalClassicalChshGameRuns
+} from 'src/engine/chsh.js'
 import { drawOutcomeStats } from 'src/engine/draw.js'
 
 const ASYNC_EVAL_TIMEOUT = 2000; // millis
@@ -60,7 +62,7 @@ let recompute = () => {
     // Stop previous async evaluation.
     cancellor.runAndClear();
 
-    let quickExperimenter = () => asyncEvalChshGameRuns(
+    let quickExperimenter = () => asyncEvalClassicalChshGameRuns(
         s1,
         s2,
         GAME_RUNS_PER_CHUNK,
