@@ -11,7 +11,8 @@ import {
 
 import {
     ChshGameOutcomeCounts,
-    asyncEvalClassicalChshGameRuns
+    asyncEvalClassicalChshGameRuns,
+    asyncEvalQuantumChshGameRuns
 } from "src/engine/ChSh.js"
 
 import Seq from "src/base/Seq.js"
@@ -122,15 +123,8 @@ suite.test("ChshGameOutcomeCounts_isEqualTo", () => {
 });
 
 suite.test("asyncEvalClassicalChshGameRuns", () => {
-    let out = s => ChshGameOutcomeCounts.fromCountsByMap(
-        new Seq(s).countBy(i => ChshGameOutcomeCounts.caseToKey(i & 1, i & 2, i & 4, i & 8)));
     let c = [];
     let r = Promise.all([
-        willResolveTo(asyncEvalClassicalChshGameRuns("move=false", "move=false", 4), out([0, 1, 2, 3])),
-        willResolveTo(asyncEvalClassicalChshGameRuns("move=false", "move=true", 4), out([8, 9, 10, 11])),
-        willResolveTo(asyncEvalClassicalChshGameRuns("move=refChoice", "move=true", 4), out([8, 13, 10, 15])),
-        willResolveTo(asyncEvalClassicalChshGameRuns("move=refChoice", "move=true", 8),
-            out([8, 8, 13, 13, 10, 10, 15, 15])),
         // Timeout.
         willReject(asyncEvalClassicalChshGameRuns("while(true);", "move=true", 1, 10)),
         // Parse error.
@@ -139,6 +133,22 @@ suite.test("asyncEvalClassicalChshGameRuns", () => {
         willReject(asyncEvalClassicalChshGameRuns("throw 1;", "move=true", 1)),
         // Cancellation.
         willReject(asyncEvalClassicalChshGameRuns("while(true);", "move=true", 1, Infinity, 16, e => c.push(e)))
+    ]);
+    for (let e of c) e();
+    return r;
+});
+
+suite.test("asyncEvalQuantumChshGameRuns", () => {
+    let c = [];
+    let r = Promise.all([
+        // Timeout.
+        willReject(asyncEvalQuantumChshGameRuns("while(true);", "move=true", 1, 10)),
+        // Parse error.
+        willReject(asyncEvalQuantumChshGameRuns("{", "move=true", 1)),
+        // Throw.
+        willReject(asyncEvalQuantumChshGameRuns("throw 1;", "move=true", 1)),
+        // Cancellation.
+        willReject(asyncEvalQuantumChshGameRuns("while(true);", "move=true", 1, Infinity, 16, e => c.push(e)))
     ]);
     for (let e of c) e();
     return r;

@@ -1,4 +1,4 @@
-import { ChshGameOutcomeCounts } from "src/lib.js"
+import { ChshGameOutcomeCounts } from "src/engine/ChSh.js"
 
 const CELL_SPAN = 75;
 const TABLE_SPAN = CELL_SPAN*4;

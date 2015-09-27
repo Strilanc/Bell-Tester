@@ -1,5 +1,6 @@
 import { asyncEval } from 'src/engine/Async.js'
 import Seq from "src/base/Seq.js"
+import { ROTATE_FUNC_STRING, MEASURE_FUNC_STRING } from "src/engine/Superposition.js"
 
 /**
  * Stores the number of times various outcomes occurred in a series of CHSH game plays.
@@ -102,34 +103,23 @@ export function asyncEvalClassicalChshGameRuns(
         cancelTaker=undefined) {
     if (!(sharedBitCount > 0 && sharedBitCount < 53)) throw RangeError("sharedBitCount");
 
-    let worldsWorstSandbox = code => `(function() { eval(${JSON.stringify(code)}); }());`;
-
     // Note: not guaranteed protection. The web worker could have access to the same entropy or to reflection.
     let dontTouchMyStuffSuffix = Seq.range(10).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-    let pk = `__i_${dontTouchMyStuffSuffix}`;
-    let pb = `__shared_${dontTouchMyStuffSuffix}`;
-    let pm = `__moves_${dontTouchMyStuffSuffix}`;
+    let round = `__i_${dontTouchMyStuffSuffix}`;
+    let allSharedBits = `__shared_${dontTouchMyStuffSuffix}`;
+    let moves = `__moves_${dontTouchMyStuffSuffix}`;
 
     let allSharedBitsArrayText = JSON.stringify(Seq.range(count).
         map(() => Math.floor(Math.random() * (1 << sharedBitCount))).
         toArray());
 
+    // Avoid revealing the suffix of the other items via 'this.constructor.toString()'.
+    let dontTouchMyStuffSuffix2 = Seq.range(10).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+    let CustomType = `__custom_type__${dontTouchMyStuffSuffix2}`;
+
     let wrapCode = (code, refCoinMask) => `
-        var ${pb} = ${allSharedBitsArrayText};
-        var ${pm} = [];
-        for (var ${pk} = 0; ${pk} < ${count}; ${pk}++) {
-            var sharedBits = [];
-            var i;
-            for (i = 0; i < ${sharedBitCount}; i++) {
-                sharedBits.push((${pb}[${pk}] & (1 << i)) !== 0);
-            }
-            i = undefined;
-
-            // By cycling through the cases, instead of choosing randomly, we get much more even coverage.
-            // In particular, when the strategy is deterministic this guarantees we get the exact expected value.
-            // (As long as the number of plays is a multiple of 4.)
-            var refChoice = (${pk} & ${refCoinMask}) !== 0;
-
+        function ${CustomType}() {}
+        ${CustomType}.prototype.invokeCode = function(refChoice, sharedBits) {
             // Be forgiving.
             var refchoice = refChoice;
             var ref_choice = refChoice;
@@ -139,16 +129,32 @@ export function asyncEvalClassicalChshGameRuns(
             var False = false;
 
             var move = undefined;
-            ${worldsWorstSandbox(code)}
+
+            eval(${JSON.stringify(code)});
 
             // Loose equality is on purpose, so people entering 'x ^ y' don't get an error.
             if (!(move == true) && !(move == false)) {
                 throw new Error("'move' variable ended up " + move + " instead of true or false");
             }
-            ${pm}.push(move == true);
+            return move == true;
         };
-        ${pm};
-        `;
+        (function() {
+            var ${allSharedBits} = ${allSharedBitsArrayText};
+            var ${moves} = [];
+            for (var ${round} = 0; ${round} < ${count}; ${round}++) {
+                var sharedBits = [];
+                var i;
+                for (i = 0; i < ${sharedBitCount}; i++) {
+                    sharedBits.push((${allSharedBits}[${round}] & (1 << i)) !== 0);
+                }
+                i = undefined;
+
+                var refChoice = Math.random() < 0.5;
+                ${moves}.push(refChoice);
+                ${moves}.push(new ${CustomType}().invokeCode(refChoice, sharedBits));
+            };
+            return ${moves};
+        })()`;
 
     let wrapCode1 = wrapCode(code1, 1);
     let wrapCode2 = wrapCode(code2, 2);
@@ -157,15 +163,115 @@ export function asyncEvalClassicalChshGameRuns(
     return Promise.all([results1, results2]).then(moves => {
         if (!Array.isArray(moves[0]) ||
             !Array.isArray(moves[1]) ||
-            moves[0].length !== count ||
-            moves[1].length !== count) {
+            moves[0].length !== count*2 ||
+            moves[1].length !== count*2) {
             throw new RangeError("Corrupted moves.")
         }
         return ChshGameOutcomeCounts.fromCountsByMap(Seq.range(count).map(i => {
-            let refCoin1 = (i & 1) !== 0;
-            let refCoin2 = (i & 2) !== 0;
-            let move1 = moves[0][i] === true;
-            let move2 = moves[1][i] === true;
+            let refCoin1 = moves[0][i*2] === true;
+            let refCoin2 = moves[1][i*2] === true;
+            let move1 = moves[0][i*2+1] === true;
+            let move2 = moves[1][i*2+1] === true;
+            return ChshGameOutcomeCounts.caseToKey(refCoin1, refCoin2, move1, move2);
+        }).countBy(e => e));
+    });
+}
+
+export function asyncEvalQuantumChshGameRuns(
+        code1,
+        code2,
+        count=1,
+        timeoutMillis=Infinity,
+        cancelTaker=undefined) {
+
+    // The name of the game is: fail at isolating two chunks of code from each other despite running them in the same
+    // context! The inevitable outcome of the game is... losing despite trying!
+
+    // e.g. "move = Date.x = refChoice" with "move = Date.x && !refChoice"
+
+    let dontTouchMyStuffSuffix = Seq.range(10).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+    let round = `__i_${dontTouchMyStuffSuffix}`;
+    let moves = `__moves_${dontTouchMyStuffSuffix}`;
+    let rotateFunc = `__rotate_${dontTouchMyStuffSuffix}`;
+    let measureFunc = `__measure_${dontTouchMyStuffSuffix}`;
+    let amplitudes = `__amps_${dontTouchMyStuffSuffix}`;
+
+    // Avoid revealing the suffix of the other items via 'this.constructor.toString()'.
+    let dontTouchMyStuffSuffix2 = Seq.range(10).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+    let CustomType = `__custom_type__${dontTouchMyStuffSuffix2}`;
+
+    let createInvokeFunction = (code, i) => `
+        ${CustomType}.prototype.invokeCode${i} = function(refChoice) {
+            // Available rotation axies.
+            var X = [1, 0, 0];
+            var Y = [0, 1, 0];
+            var Z = [0, 0, 1];
+            var H = [Math.sqrt(0.5), 0, Math.sqrt(0.5)];
+
+            // Available actions.
+            var measure = function() {
+                return ${measureFunc}(${amplitudes}, ${i});
+            };
+            var turn = function(axis, degs) {
+                if (axis.length !== 3) throw new Error("First arg to 'turn' should be a rotation axis (X/Y/Z/H).");
+                return ${rotateFunc}(${amplitudes}, ${i}, axis, (degs === undefined ? 180 : degs)*Math.PI/180, []);
+            };
+
+            // Be forgiving.
+            var refchoice = refChoice;
+            var ref_choice = refChoice;
+            var True = true;
+            var False = false;
+
+            var move = undefined;
+
+            eval(${JSON.stringify(code)});
+
+            // Loose equality is on purpose, so people entering 'x ^ y' don't get an error.
+            if (!(move == true) && !(move == false)) {
+                throw new Error("'move' variable ended up " + move + " instead of true or false");
+            }
+            return move == true;
+        };`;
+
+    let wrappedCode = `
+        var ${amplitudes}; // <-- weakpoint
+        var ${rotateFunc} = ${ROTATE_FUNC_STRING};
+        var ${measureFunc} = ${MEASURE_FUNC_STRING};
+        function ${CustomType}() {}
+        ${createInvokeFunction(code1, 0)};
+        ${createInvokeFunction(code2, 1)};
+        (function() {
+            var ${round} = 0;
+            var ${moves} = [];
+            for (; ${round} < ${count}; ${round}++) {
+                // Create pre-shared entangled 00+11 state.
+                ${amplitudes} = new Float32Array(2 << 2);
+                ${amplitudes}[0] = Math.sqrt(0.5);
+                ${amplitudes}[6] = Math.sqrt(0.5);
+
+                // Note: order shouldn't matter.
+                // Also, because these are run in the same web worker, it's much easier for them to cheat..
+                var refChoice1 = Math.random() < 0.5;
+                var refChoice2 = Math.random() < 0.5;
+                ${moves}.push(refChoice1);
+                ${moves}.push(refChoice2);
+                ${moves}.push(new ${CustomType}().invokeCode0(refChoice1));
+                ${moves}.push(new ${CustomType}().invokeCode1(refChoice2));
+            };
+            return ${moves};
+        })();`;
+
+    let results = asyncEval(wrappedCode, timeoutMillis, cancelTaker);
+    return results.then(moves => {
+        if (!Array.isArray(moves) || moves.length !== 4*count) {
+            throw new RangeError("Corrupted moves.")
+        }
+        return ChshGameOutcomeCounts.fromCountsByMap(Seq.range(count).map(i => {
+            let refCoin1 = moves[4*i] === true;
+            let refCoin2 = moves[4*i + 1] === true;
+            let move1 = moves[4*i + 2] === true;
+            let move2 = moves[4*i + 3] === true;
             return ChshGameOutcomeCounts.caseToKey(refCoin1, refCoin2, move1, move2);
         }).countBy(e => e));
     });

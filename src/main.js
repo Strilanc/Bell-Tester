@@ -6,7 +6,8 @@ import {
 } from 'src/engine/Async.js'
 import {
     ChshGameOutcomeCounts,
-    asyncEvalClassicalChshGameRuns
+    asyncEvalClassicalChshGameRuns,
+    asyncEvalQuantumChshGameRuns
 } from 'src/engine/ChSh.js'
 import { drawOutcomeStats } from 'src/engine/Draw.js'
 
@@ -69,6 +70,12 @@ let recompute = () => {
         ASYNC_EVAL_TIMEOUT,
         SHARED_BIT_COUNT,
         cancellorAdd);
+    //let quickExperimenter = () => asyncEvalQuantumChshGameRuns(
+    //    s1,
+    //    s2,
+    //    GAME_RUNS_PER_CHUNK,
+    //    ASYNC_EVAL_TIMEOUT,
+    //    cancellorAdd);
 
     let totalOutcomes = new ChshGameOutcomeCounts();
     streamGeneratedPromiseResults(
