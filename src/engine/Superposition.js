@@ -1,110 +1,88 @@
-/**
- * A weighted combination of states.
- * Like a probability distribution, except the probabilities are replaced by amplitudes.
- */
-export default class Superposition {
-    /**
-     * @param {int} bit_count
-     */
-    constructor(bit_count) {
-        this._bit_count = bit_count;
-        this._N = 1 << bit_count;
-        this._amps = new Float32Array(2 << bit_count);
-        this._amps[0] = 1;
-    }
-
-    /**
-     * Applies a controlled unitary operation to one of the qubits in the superposition.
-     * @param {int} target_bit_index
-     * @param {!Array.<int>} axis An [x, y, z] unit vector to rotate around.
-     * @param {number} theta The amount to rotate by, in radians.
-     * @param {!Array.<int>} control_bit_indices
-     */
-    rotate(target_bit_index, axis, theta, control_bit_indices=[]) {
-        let [x, y, z] = axis;
+export const ROTATE_FUNC_STRING = `
+    (function(amps, target_bit_index, axis, theta, control_bit_indices) {
+        if (control_bit_indices === undefined) control_bit_indices = [];
+        var n = amps.length/2;
+        var x = axis[0];
+        var y = axis[1];
+        var z = axis[2];
         // U = |z    x-iy|
         //     |x+iy   -z|
 
         // p = (-1)^t = cos(theta) + i sin(theta)
-        let pr = Math.cos(theta);
-        let pi = Math.sin(theta);
+        var pr = Math.cos(theta);
+        var pi = Math.sin(theta);
 
         // M = U^t = ( (1+p)*I + (1-p)*U )/2 = | 1+p+(1-p)z    (1-p)(x-iy) |
         //                                     | (1-p)(x+iy)    1+p-(1-p)z |
         // Well, this ended up kind of complicated...
-        let ar = (1 + pr + z - pr*z)/2;
-        let ai = (pi - pi*z)/2;
-        let br = (x - pr*x - pi*y)/2;
-        let bi = (-y + pr*y - pi*x)/2;
-        let cr = (x - pr*x + pi*y)/2;
-        let ci = (y - pr*y - pi*x)/2;
-        let dr = (1 + pr - z + pr*z)/2;
-        let di = (pi + pi*z)/2;
+        var ar = (1 + pr + z - pr*z)/2;
+        var ai = (pi - pi*z)/2;
+        var br = (x - pr*x - pi*y)/2;
+        var bi = (-y + pr*y - pi*x)/2;
+        var cr = (x - pr*x + pi*y)/2;
+        var ci = (y - pr*y - pi*x)/2;
+        var dr = (1 + pr - z + pr*z)/2;
+        var di = (pi + pi*z)/2;
 
-        for (let i = 0; i < this._N; i++) {
-           if ((i & (1 << target_bit_index)) === 0 && control_bit_indices.every(k => (i & (1 << k)) !== 0)) {
-               let j = i*2;
-               let k = j + (2 << target_bit_index);
+        for (var i = 0; i < n; i++) {
+            // Only process each amplitude pair once.
+            var skip = (i & (1 << target_bit_index)) !== 0;
+            // Skip parts of the superposition where control bits are off.
+            for (var k = 0; k < control_bit_indices.length; k++) {
+                skip |= (i & (1 << control_bit_indices[k])) === 0;
+            }
+            if (skip) continue;
 
-               let ur = this._amps[j];
-               let ui = this._amps[j+1];
-               let vr = this._amps[k];
-               let vi = this._amps[k+1];
+            var j1 = i*2;
+            var j2 = j1 + (2 << target_bit_index);
 
-               // | a b | |u| = |au+bv|
-               // | c d | |v|   |cu+dv|
-               let ur2 = ar*ur - ai*ui + br*vr - bi*vi;
-               let ui2 = ar*ui + ai*ur + br*vi + bi*vr;
-               let vr2 = cr*ur - ci*ui + dr*vr - di*vi;
-               let vi2 = cr*ui + ci*ur + dr*vi + di*vr;
+            var ur = amps[j1];
+            var ui = amps[j1+1];
+            var vr = amps[j2];
+            var vi = amps[j2+1];
 
-               this._amps[j] = ur2;
-               this._amps[j+1] = ui2;
-               this._amps[k] = vr2;
-               this._amps[k+1] = vi2;
-           }
+            // | a b | |u| = |au+bv|
+            // | c d | |v|   |cu+dv|
+            var ur2 = ar*ur - ai*ui + br*vr - bi*vi;
+            var ui2 = ar*ui + ai*ur + br*vi + bi*vr;
+            var vr2 = cr*ur - ci*ui + dr*vr - di*vi;
+            var vi2 = cr*ui + ci*ur + dr*vi + di*vr;
+
+            amps[j1] = ur2;
+            amps[j1+1] = ui2;
+            amps[j2] = vr2;
+            amps[j2+1] = vi2;
         }
-    }
+    })`;
 
-    /**
-     * Measures one of the qubits in the superposition.
-     * @param {int} target_bit_index
-     */
-    measure(target_bit_index) {
+export const MEASURE_FUNC_STRING = `
+    (function(amps, target_bit_index) {
+        var n = amps.length / 2;
         // Weigh.
-        let p = 0;
-        for (let i = 0; i < this._N; i++) {
+        var p = 0;
+        for (var i = 0; i < n; i++) {
             if ((i & (1 << target_bit_index)) !== 0) {
-                let vr = this._amps[i*2];
-                let vi = this._amps[i*2+1];
+                var vr = amps[i*2];
+                var vi = amps[i*2+1];
                 p += vr*vr + vi*vi;
             }
         }
 
         // Collapse.
-        let outcome = Math.random() < p;
+        var outcome = Math.random() < p;
 
         // Renormalize.
-        let w = Math.sqrt(outcome ? p : 1-p);
-        for (let i = 0; i < this._N; i++) {
-            let b = (i & (1 << target_bit_index)) !== 0;
+        var w = Math.sqrt(outcome ? p : 1-p);
+        for (var i = 0; i < n; i++) {
+            var b = (i & (1 << target_bit_index)) !== 0;
             if (b === outcome) {
-                this._amps[i*2] /= w;
-                this._amps[i*2+1] /= w;
+                amps[i*2] /= w;
+                amps[i*2+1] /= w;
             } else {
-                this._amps[i*2] = 0;
-                this._amps[i*2+1] = 0;
+                amps[i*2] = 0;
+                amps[i*2+1] = 0;
             }
         }
 
         return outcome;
-    }
-
-    /**
-     * Returns a copy of the amplitudes buffer.
-     * @returns {!Float32Array}
-     */
-    peek() {
-        return new Float32Array(this._amps);
-    }
-}
+    })`;
