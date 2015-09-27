@@ -12,7 +12,7 @@ import {
 import {
     ChshGameOutcomeCounts,
     asyncEvalClassicalChshGameRuns
-} from "src/engine/chsh.js"
+} from "src/engine/ChSh.js"
 
 import Seq from "src/base/Seq.js"
 

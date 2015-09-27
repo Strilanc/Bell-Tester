@@ -15,7 +15,7 @@ import {
     streamGeneratedPromiseResults,
     asyncifyProgressReporter,
     asyncEval
-} from "src/engine/async.js"
+} from "src/engine/Async.js"
 
 let suite = new Suite("lib");
 

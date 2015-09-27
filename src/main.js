@@ -3,12 +3,12 @@ import {
     delayed,
     streamGeneratedPromiseResults,
     asyncifyProgressReporter
-} from 'src/engine/async.js'
+} from 'src/engine/Async.js'
 import {
     ChshGameOutcomeCounts,
     asyncEvalClassicalChshGameRuns
-} from 'src/engine/chsh.js'
-import { drawOutcomeStats } from 'src/engine/draw.js'
+} from 'src/engine/ChSh.js'
+import { drawOutcomeStats } from 'src/engine/Draw.js'
 
 const ASYNC_EVAL_TIMEOUT = 2000; // millis
 const SHOW_BUSY_GRACE_PERIOD = 250; // millis
