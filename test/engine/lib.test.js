@@ -15,12 +15,42 @@ import {
     streamGeneratedPromiseResults,
     ChshGameOutcomeCounts,
     asyncEvalChshGameRuns,
-    asyncifyProgressReporter
-} from "src/lib.js"
+    asyncifyProgressReporter,
+    asyncEval
+} from "src/engine/lib.js"
 
 import Seq from "src/base/Seq.js"
 
 let suite = new Suite("lib");
+
+suite.test("asyncEval", () => {
+    let cancellers = [];
+    let result = Promise.all([
+        // result
+        willResolveTo(asyncEval("5+3"), 8),
+        willResolveTo(asyncEval("[]"), []),
+        willResolveTo(asyncEval("var a = 5; var b = 7; a + b;"), 12),
+        willResolveTo(asyncEval("var a = 5; var b = 7; a + b;", 1000), 12),
+
+        // syntax error
+        willReject(asyncEval("{")),
+        willReject(asyncEval("{", 1000)),
+
+        // exception thrown
+        willReject(asyncEval("throw 1;")),
+        willReject(asyncEval("throw new Error();")),
+
+        // infinite loop (timeout)
+        willReject(asyncEval("while (true) {}", 50)),
+
+        // infinite loop (cancelled)
+        willReject(asyncEval("while (true) {}", Infinity, e => cancellers.push(e)))
+    ]);
+    for (let f of cancellers) {
+        f();
+    }
+    return result;
+});
 
 suite.test("FunctionGroup_interaction", () => {
     let i = 0;

@@ -1,7 +1,3 @@
-import Config from 'src/Config.js'
-import describe from 'src/base/Describe.js'
-import Seq from 'src/base/Seq.js'
-import Util from 'src/base/Util.js'
 import {
     FunctionGroup,
     delayed,
@@ -9,8 +5,8 @@ import {
     ChshGameOutcomeCounts,
     asyncEvalChshGameRuns,
     asyncifyProgressReporter
-} from 'src/lib.js'
-import { drawOutcomeStats } from 'src/draw.js'
+} from 'src/engine/lib.js'
+import { drawOutcomeStats } from 'src/engine/draw.js'
 
 const ASYNC_EVAL_TIMEOUT = 2000; // millis
 const SHOW_BUSY_GRACE_PERIOD = 250; // millis

@@ -1,6 +1,59 @@
-import describe from "src/base/Describe.js"
 import Seq from "src/base/Seq.js"
-import Util from "src/base/Util.js"
+
+/**
+ * Returns a promise for the result of using a web worker to eval the given string as code.
+ *
+ * Note that this is NOT intended to be used as a secure sandbox for safely running potentially malicious code.
+ *
+ * @param {!string} codeText The string passed to 'eval' in the web worker.
+ * @param {!number=} timeout The maximum number of milliseconds the web worker is allowed to run before being terminated. Pass
+ * 'Infinity' if you don't want a timeout.
+ * @param {!function(!function(void):void):void=} cancelTaker A function that accepts cancellers for the async eval;
+ * running the functions passed to the cancelTaker function will cancel the asyncEval.
+ */
+export function asyncEval(codeText, timeout=Infinity, cancelTaker=undefined) {
+    return new Promise((resolve, reject) => {
+        let workerCode = `postMessage(eval(${JSON.stringify(codeText)}));`;
+        let blob = new Blob([workerCode], {type: 'text/javascript'});
+        let blobUrl = URL.createObjectURL(blob);
+        let worker = new Worker(blobUrl);
+
+        // We want to eagerly cleanup the timeout timer if the worker finishes early.
+        // But we can't start the timer until after we start the worker.
+        // So this resolver and promise are for working with the eventual id of the timer.
+        let timeoutIDResolver = undefined;
+        let timeoutIDPromise = new Promise(res => timeoutIDResolver = res);
+        let cleanup = () => {
+            worker.terminate();
+            timeoutIDPromise.then(clearTimeout);
+        };
+        worker.addEventListener('message', cleanup);
+        worker.addEventListener('error', cleanup);
+
+        // Link the result into the returned promise, and start the worker.
+        worker.addEventListener('message', e => resolve(e.data));
+        worker.addEventListener('error', e => {
+            e.preventDefault();
+            reject(e.message);
+        });
+        worker.postMessage('start');
+
+        // Start the timeout.
+        if (timeout !== Infinity) {
+            timeoutIDResolver(setTimeout(() => {
+                reject('Timeout');
+                worker.terminate();
+            }, timeout));
+        }
+
+        if (cancelTaker !== undefined) {
+            cancelTaker(() => {
+                reject('Cancelled');
+                cleanup();
+            });
+        }
+    });
+}
 
 /**
  * Accepts multiple functions, storing them until told to run them and reset.
@@ -190,7 +243,7 @@ export function asyncEvalChshGameRuns(
     let pb = `__shared_${dontTouchMyStuffSuffix}`;
     let pm = `__moves_${dontTouchMyStuffSuffix}`;
 
-    let allSharedBitsArrayText = describe(Seq.range(count).
+    let allSharedBitsArrayText = JSON.stringify(Seq.range(count).
         map(() => Math.floor(Math.random() * (1 << sharedBitCount))).
         toArray());
 
@@ -232,8 +285,8 @@ export function asyncEvalChshGameRuns(
 
     let wrapCode1 = wrapCode(code1, 1);
     let wrapCode2 = wrapCode(code2, 2);
-    let results1 = Util.asyncEval(wrapCode1, timeoutMillis, cancelTaker);
-    let results2 = Util.asyncEval(wrapCode2, timeoutMillis, cancelTaker);
+    let results1 = asyncEval(wrapCode1, timeoutMillis, cancelTaker);
+    let results2 = asyncEval(wrapCode2, timeoutMillis, cancelTaker);
     return Promise.all([results1, results2]).then(moves => {
         if (!Array.isArray(moves[0]) ||
             !Array.isArray(moves[1]) ||

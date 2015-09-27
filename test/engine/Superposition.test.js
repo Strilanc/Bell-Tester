@@ -9,9 +9,7 @@ import {
     promiseEventLoopYielder
 } from "test/TestUtil.js"
 
-import Superposition from "src/Superposition.js"
-
-import Seq from "src/base/Seq.js"
+import Superposition from "src/engine/Superposition.js"
 
 let suite = new Suite("lib");
 
@@ -141,7 +139,7 @@ suite.test("measure_1", () => {
     s.rotate(0, X, Math.PI);
     assertThat(s.peek()).isApproximatelyEqualTo(new Float32Array([1, 0, 0, 0]));
 
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 10; i++) {
         s.rotate(0, H, Math.PI);
         let b = s.measure(0);
         if (b) {
@@ -161,7 +159,7 @@ suite.test("measure_2", () => {
 
     s.rotate(0, H, Math.PI);
     s.rotate(1, H, Math.PI);
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 10; i++) {
         let b1 = s.measure(0);
         if (b1) {
             assertThat(s.peek()).isApproximatelyEqualTo(new Float32Array([0, 0, f, 0, 0, 0, f, 0]));

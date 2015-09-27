@@ -1,6 +1,6 @@
 // Cheat a little bit on the testing library being independent from what it tests
-import describe from "src/base/Describe.js"
-import equate from "src/base/Equate.js"
+import describe from "test/base/Describe.js"
+import equate from "test/base/Equate.js"
 
 function isArrayIsh(value) {
     return Array.isArray(value) ||
@@ -161,7 +161,7 @@ export class AssertionSubject {
      * @param {*} other
      * @param {=number} epsilon
      */
-    isApproximatelyEqualTo(other, epsilon = 0.0001) {
+    isApproximatelyEqualTo(other, epsilon = 0.00001) {
         if (!isApproximatelyEqualToHelper(this.subject, other, epsilon)) {
             fail(`Got <${describe(this.subject)}> but expected it to approximately equal <${describe(other)}>`);
         }
@@ -171,7 +171,7 @@ export class AssertionSubject {
      * @param {*} other
      * @param {=number} epsilon
      */
-    isNotApproximatelyEqualTo(other, epsilon = 0.0001) {
+    isNotApproximatelyEqualTo(other, epsilon = 0.00001) {
         if (isApproximatelyEqualToHelper(this.subject, other, epsilon)) {
             fail(`Got <${describe(this.subject)}> but expected it to NOT approximately equal <${describe(other)}>`);
         }
