@@ -161,7 +161,7 @@ export class AssertionSubject {
      * @param {*} other
      * @param {=number} epsilon
      */
-    isApproximatelyEqualTo(other, epsilon = 0.000001) {
+    isApproximatelyEqualTo(other, epsilon = 0.0001) {
         if (!isApproximatelyEqualToHelper(this.subject, other, epsilon)) {
             fail(`Got <${describe(this.subject)}> but expected it to approximately equal <${describe(other)}>`);
         }
@@ -171,7 +171,7 @@ export class AssertionSubject {
      * @param {*} other
      * @param {=number} epsilon
      */
-    isNotApproximatelyEqualTo(other, epsilon = 0.000001) {
+    isNotApproximatelyEqualTo(other, epsilon = 0.0001) {
         if (isApproximatelyEqualToHelper(this.subject, other, epsilon)) {
             fail(`Got <${describe(this.subject)}> but expected it to NOT approximately equal <${describe(other)}>`);
         }
