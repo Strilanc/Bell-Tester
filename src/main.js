@@ -1,100 +1,63 @@
-import {
-    FunctionGroup,
-    delayed,
-    streamGeneratedPromiseResults,
-    asyncifyProgressReporter
-} from 'src/engine/Async.js'
-import {
-    ChshGameOutcomeCounts,
-    asyncEvalClassicalChshGameRuns,
-    asyncEvalQuantumChshGameRuns
-} from 'src/engine/ChSh.js'
-import { drawOutcomeStats } from 'src/engine/Draw.js'
+import Seq from 'src/base/Seq.js'
+import { wireGame } from 'src/engine/Draw.js'
+import { ChshGameOutcomeCounts, asyncEvalClassicalChshGameRuns, asyncEvalQuantumChshGameRuns } from 'src/engine/ChSh.js'
 
-const ASYNC_EVAL_TIMEOUT = 2000; // millis
-const SHOW_BUSY_GRACE_PERIOD = 250; // millis
-const SHOW_ERR_GRACE_PERIOD = 500; // millis
 const SHARED_BIT_COUNT = 16; // number of shared classical bits given to each player
-const GAME_RUNS_PER_CHUNK = 1000;
-const RUN_CHUNK_COUNT = 100;
-const RUN_CONCURRENCY = 2; // Caution: chrome seems to dislike too many concurrent web workers. By crashing.
+const ASYNC_EVAL_TIMEOUT = 2000; // millis
 
-let textArea1 = document.getElementById('srcTextArea1');
-let textArea2 = document.getElementById('srcTextArea2');
-let rateLabel = document.getElementById('rateLabel');
-let countLabel = document.getElementById('countLabel');
-let judgementLabel = document.getElementById('judgementLabel');
-let resultsDiv = document.getElementById('resultsDiv');
-let errLabel = document.getElementById('errorLabel');
-let canvas = document.getElementById('drawCanvas');
-let ctx = canvas.getContext('2d');
+let classicalRecorded = [
+    25186, 0, 12553, 12494,
+    0, 0, 0, 0,
+    24718, 0, 12468, 12581,
+    0, 0, 0, 0
+];
+let quantumRecorded = [
+    10813, 1734, 10416, 1875,
+    1832, 10833, 1840, 10619,
+    10581, 1835, 1849, 10811,
+    1817, 10643, 10672, 1830
+];
 
-// Set up recomputation engine and have it output to UI.
-let labelEventualSet = asyncifyProgressReporter((text, flag) => {
-    if (flag) {
-        let lines = text.split('\n');
-        rateLabel.textContent = lines[0];
-        countLabel.textContent = lines[1];
-        judgementLabel.textContent = lines[2];
-        errLabel.textContent = '';
-        resultsDiv.style.opacity = 1;
-        textArea1.style.backgroundColor = 'white';
-        textArea2.style.backgroundColor = 'white';
-    } else {
-        errLabel.textContent = text;
-        resultsDiv.style.opacity = 0.25;
-        textArea1.style.backgroundColor = 'pink';
-        textArea2.style.backgroundColor = 'pink';
-    }
-});
-let cancellor = new FunctionGroup();
-let cancellorAdd = canceller => cancellor.add(canceller);
-let lastText1 = undefined;
-let lastText2 = undefined;
-let recompute = () => {
-    let s1 = textArea1.value;
-    let s2 = textArea2.value;
-    if (lastText1 === s1 && lastText2 === s2) {
-        return;
-    }
-    lastText1 = s1;
-    lastText2 = s2;
+let precomputedClassicalOutcomeForDefaultStrategy = ChshGameOutcomeCounts.fromCountsByMap(
+    Seq.range(16).toMap(i => ChshGameOutcomeCounts.caseToKey(i & 8, i & 2, i & 4, i & 1), i => classicalRecorded[i]));
+let precomputedQuantumOutcomeForDefaultStrategy = ChshGameOutcomeCounts.fromCountsByMap(
+    Seq.range(16).toMap(i => ChshGameOutcomeCounts.caseToKey(i & 8, i & 2, i & 4, i & 1), i => quantumRecorded[i]));
 
-    // Stop previous async evaluation.
-    cancellor.runAndClear();
-
-    let quickExperimenter = () => asyncEvalClassicalChshGameRuns(
-        s1,
-        s2,
-        GAME_RUNS_PER_CHUNK,
+wireGame(
+    document.getElementById('srcTextArea1_classical'),
+    document.getElementById('srcTextArea2_classical'),
+    document.getElementById('rateLabel_classical'),
+    document.getElementById('countLabel_classical'),
+    document.getElementById('judgementLabel_classical'),
+    document.getElementById('errorLabel_classical'),
+    document.getElementById('resultsDiv_classical'),
+    document.getElementById('drawCanvas_classical'),
+    "// write any strategy you want!\nmove = false",
+    "// write any strategy you want!\nmove = refChoice && sharedBits[0];",
+    precomputedClassicalOutcomeForDefaultStrategy,
+    (code1, code2, runs, cancellor) => asyncEvalClassicalChshGameRuns(
+        code1,
+        code2,
+        runs,
         ASYNC_EVAL_TIMEOUT,
         SHARED_BIT_COUNT,
-        cancellorAdd);
-    //let quickExperimenter = () => asyncEvalQuantumChshGameRuns(
-    //    s1,
-    //    s2,
-    //    GAME_RUNS_PER_CHUNK,
-    //    ASYNC_EVAL_TIMEOUT,
-    //    cancellorAdd);
+        cancellor));
 
-    let totalOutcomes = new ChshGameOutcomeCounts();
-    streamGeneratedPromiseResults(
-        quickExperimenter,
-        partialOutcomes => {
-            totalOutcomes = totalOutcomes.mergedWith(partialOutcomes); // I miss reactive observables...
-            drawOutcomeStats(ctx, totalOutcomes, e => labelEventualSet(Promise.resolve(e)));
-        },
-        ex => labelEventualSet(delayed(ex, SHOW_ERR_GRACE_PERIOD, true)),
-        RUN_CHUNK_COUNT,
-        RUN_CONCURRENCY,
-        cancellorAdd);
-};
-
-// Wire UI events into to engine.
-const textAreaChangeEvents = ['change', 'keydown', 'keypress', 'paste', 'keyup'];
-for (let t of [textArea1, textArea2]) {
-    for (let e of textAreaChangeEvents) {
-        t.addEventListener(e, recompute);
-    }
-}
-recompute();
+wireGame(
+    document.getElementById('srcTextArea1_quantum'),
+    document.getElementById('srcTextArea2_quantum'),
+    document.getElementById('rateLabel_quantum'),
+    document.getElementById('countLabel_quantum'),
+    document.getElementById('judgementLabel_quantum'),
+    document.getElementById('errorLabel_quantum'),
+    document.getElementById('resultsDiv_quantum'),
+    document.getElementById('drawCanvas_quantum'),
+    "turn(X, -45)\nif (refChoice) turn(X, 90)\nmove = measure()",
+    "if (refChoice) turn(X, 90)\nmove = measure()",
+    precomputedQuantumOutcomeForDefaultStrategy,
+    (code1, code2, runs, cancellor) => asyncEvalQuantumChshGameRuns(
+        code1,
+        code2,
+        runs,
+        ASYNC_EVAL_TIMEOUT,
+        cancellor));

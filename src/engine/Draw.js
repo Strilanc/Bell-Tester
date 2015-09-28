@@ -1,8 +1,19 @@
 import { ChshGameOutcomeCounts } from "src/engine/ChSh.js"
+import {
+    FunctionGroup,
+    asyncifyProgressReporter,
+    streamGeneratedPromiseResults,
+    delayed
+} from "src/engine/Async.js"
 
 const CELL_SPAN = 75;
 const TABLE_SPAN = CELL_SPAN*4;
 const HEADER_UNIT = 10;
+const GAME_RUNS_PER_CHUNK = 1000;
+const RUN_CHUNK_COUNT = 100;
+const RUN_CONCURRENCY = 2; // Caution: chrome seems to dislike too many concurrent web workers. By crashing.
+const SHOW_BUSY_GRACE_PERIOD = 250; // millis
+const SHOW_ERR_GRACE_PERIOD = 500; // millis
 
 function fillCenteredText(ctx, text, x, y, rotation=0) {
     var w = ctx.measureText(text).width;
@@ -120,4 +131,92 @@ export function drawOutcomeStats(ctx, outcomes, labelSetter) {
         print("move=False", CELL_SPAN*2 + CELL_SPAN/2, HEADER_UNIT*6);
         print("move=True", CELL_SPAN*3 + CELL_SPAN/2, HEADER_UNIT*6);
     }
+}
+
+/**
+ * @param {!HTMLTextAreaElement} codeTextArea1
+ * @param {!HTMLTextAreaElement} codeTextArea2
+ * @param {!HTMLLabelElement} rateLabel
+ * @param {!HTMLLabelElement} countLabel
+ * @param {!HTMLLabelElement} judgementLabel
+ * @param {!HTMLLabelElement} errLabel
+ * @param {!HTMLDivElement} resultsDiv
+ * @param {!HTMLCanvasElement} canvas
+ * @param {!string} initialCode1
+ * @param {!string} initialCode2
+ * @param {!ChshGameOutcomeCounts} precomputedInitialOutcome
+ * @param {!function(!string, !string, int, !function(!function()))} asyncGameRunner
+ */
+export function wireGame(
+        codeTextArea1,
+        codeTextArea2,
+        rateLabel,
+        countLabel,
+        judgementLabel,
+        errLabel,
+        resultsDiv,
+        canvas,
+        initialCode1,
+        initialCode2,
+        precomputedInitialOutcome,
+        asyncGameRunner) {
+    codeTextArea1.value = initialCode1;
+    codeTextArea2.value = initialCode2;
+    let ctx = canvas.getContext('2d');
+    let labelEventualSet = asyncifyProgressReporter((text, flag) => {
+        if (flag) {
+            let lines = text.split('\n');
+            rateLabel.textContent = lines[0];
+            countLabel.textContent = lines[1];
+            judgementLabel.textContent = lines[2];
+            errLabel.textContent = '';
+            resultsDiv.style.opacity = 1;
+            codeTextArea1.style.backgroundColor = 'white';
+            codeTextArea2.style.backgroundColor = 'white';
+        } else {
+            errLabel.textContent = text;
+            resultsDiv.style.opacity = 0.25;
+            codeTextArea1.style.backgroundColor = 'pink';
+            codeTextArea2.style.backgroundColor = 'pink';
+        }
+    });
+    let cancellor = new FunctionGroup();
+    let cancellorAdd = canceller => cancellor.add(canceller);
+    let lastText1 = undefined;
+    let lastText2 = undefined;
+    let recompute = () => {
+        let s1 = codeTextArea1.value;
+        let s2 = codeTextArea2.value;
+        if (lastText1 === s1 && lastText2 === s2) {
+            return;
+        }
+        lastText1 = s1;
+        lastText2 = s2;
+
+        // Stop previous async evaluation.
+        cancellor.runAndClear();
+
+        let totalOutcomes = new ChshGameOutcomeCounts();
+        streamGeneratedPromiseResults(
+            () => asyncGameRunner(s1, s2, GAME_RUNS_PER_CHUNK, cancellorAdd),
+            partialOutcomes => {
+                totalOutcomes = totalOutcomes.mergedWith(partialOutcomes); // I miss reactive observables...
+                drawOutcomeStats(ctx, totalOutcomes, e => labelEventualSet(Promise.resolve(e)));
+            },
+            ex => labelEventualSet(delayed(ex, SHOW_ERR_GRACE_PERIOD, true)),
+            RUN_CHUNK_COUNT,
+            RUN_CONCURRENCY,
+            cancellorAdd);
+    };
+
+    // Recompute when the entered code changes.
+    const textAreaChangeEvents = ['change', 'keydown', 'keypress', 'paste', 'keyup'];
+    for (let t of [codeTextArea1, codeTextArea2]) {
+        for (let e of textAreaChangeEvents) {
+            t.addEventListener(e, recompute);
+        }
+    }
+
+    // Show a default result on startup (instead of applying any compute load).
+    drawOutcomeStats(ctx, precomputedInitialOutcome, e => labelEventualSet(Promise.resolve(e)));
 }
