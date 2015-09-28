@@ -6,7 +6,7 @@ import {
     delayed
 } from "src/engine/Async.js"
 
-const CELL_SPAN = 75;
+const CELL_SPAN = 55;
 const TABLE_SPAN = CELL_SPAN*4;
 const HEADER_UNIT = 10;
 const GAME_RUNS_PER_CHUNK = 1000;
@@ -50,7 +50,7 @@ export function drawOutcomeStats(ctx, outcomes, labelSetter) {
         over <= 5 ? 'Maybe. Could be lucky? \u03C3>3' /* about 1 in 750 by chance */ :
         'Looks like it! \u03C3>5' /* about 1 in 30000 by chance */;
     labelSetter(msg1 + '\n' + msg2 + '\n' + msg3);
-    let inset = HEADER_UNIT*7;
+    let inset = HEADER_UNIT*6;
 
     // Draw data.
     ctx.clearRect(0, 0, 16*CELL_SPAN+10, 16*CELL_SPAN+10);
@@ -85,9 +85,6 @@ export function drawOutcomeStats(ctx, outcomes, labelSetter) {
     // Draw grid and headers.
     ctx.fillStyle = 'black';
     ctx.strokeStyle = 'black';
-    ctx.font = "12pt Helvetica";
-    fillCenteredText(ctx, "Measured", inset/2, inset/2, -Math.PI/4);
-    fillCenteredText(ctx, "Hits", inset*0.65, inset*0.65, -Math.PI/4);
     for (let i of [0, 1]) {
         // Switch between row-wise and column-wise, so each is handled by the same code below.
         let name = i == 0 ? "BOB" : "ALICE";
@@ -110,26 +107,26 @@ export function drawOutcomeStats(ctx, outcomes, labelSetter) {
 
         // Dividers.
         ctx.lineWidth = 1.5;
-        line(2*CELL_SPAN, HEADER_UNIT*3, 0, HEADER_UNIT*4 + TABLE_SPAN); // Center column divider.
+        line(2*CELL_SPAN, HEADER_UNIT*2, 0, HEADER_UNIT*4 + TABLE_SPAN); // Center column divider.
         ctx.lineWidth = 0.5;
-        line(0, HEADER_UNIT*5, TABLE_SPAN, 0); // Divider between name / refChoice.
-        line(0, HEADER_UNIT*3, TABLE_SPAN, 0); // Divider between refChoice / move.
-        line(0, HEADER_UNIT*3, 0, HEADER_UNIT*4 + TABLE_SPAN); // Left border.
-        line(CELL_SPAN, HEADER_UNIT*5, 0, HEADER_UNIT*2 + TABLE_SPAN); // Left-center column divider.
-        line(CELL_SPAN*3, HEADER_UNIT*5, 0, HEADER_UNIT*2 + TABLE_SPAN); // Right-center column divider.
-        line(TABLE_SPAN, HEADER_UNIT*3, 0, HEADER_UNIT*4 + TABLE_SPAN); // Right border.
+        line(0, HEADER_UNIT*4, TABLE_SPAN, 0); // Divider between name / refChoice.
+        line(0, HEADER_UNIT*2, TABLE_SPAN, 0); // Divider between refChoice / move.
+        line(0, HEADER_UNIT*2, 0, HEADER_UNIT*4 + TABLE_SPAN); // Left border.
+        line(CELL_SPAN, HEADER_UNIT*4, 0, HEADER_UNIT*2 + TABLE_SPAN); // Left-center column divider.
+        line(CELL_SPAN*3, HEADER_UNIT*4, 0, HEADER_UNIT*2 + TABLE_SPAN); // Right-center column divider.
+        line(TABLE_SPAN, HEADER_UNIT*2, 0, HEADER_UNIT*4 + TABLE_SPAN); // Right border.
 
         // Header cell text.
-        ctx.font = "16pt Helvetica";
-        print(name, 2*CELL_SPAN, HEADER_UNIT*2);
+        ctx.font = "12pt Helvetica";
+        print(name, 2*CELL_SPAN, HEADER_UNIT);
         ctx.font = "10pt Helvetica";
-        print("refChoice=False", CELL_SPAN, HEADER_UNIT*4);
-        print("refChoice=True", CELL_SPAN*3, HEADER_UNIT*4);
+        print("refChoice: False", CELL_SPAN, HEADER_UNIT*3);
+        print("refChoice: True", CELL_SPAN*3, HEADER_UNIT*3);
         ctx.font = "8pt Helvetica";
-        print("move=False", CELL_SPAN/2, HEADER_UNIT*6);
-        print("move=True", CELL_SPAN + CELL_SPAN/2, HEADER_UNIT*6);
-        print("move=False", CELL_SPAN*2 + CELL_SPAN/2, HEADER_UNIT*6);
-        print("move=True", CELL_SPAN*3 + CELL_SPAN/2, HEADER_UNIT*6);
+        print("move:false", CELL_SPAN/2, HEADER_UNIT*5);
+        print("move:true", CELL_SPAN + CELL_SPAN/2, HEADER_UNIT*5);
+        print("move:false", CELL_SPAN*2 + CELL_SPAN/2, HEADER_UNIT*5);
+        print("move:true", CELL_SPAN*3 + CELL_SPAN/2, HEADER_UNIT*5);
     }
 }
 
@@ -182,8 +179,8 @@ export function wireGame(
     });
     let cancellor = new FunctionGroup();
     let cancellorAdd = canceller => cancellor.add(canceller);
-    let lastText1 = undefined;
-    let lastText2 = undefined;
+    let lastText1 = initialCode1;
+    let lastText2 = initialCode2;
     let recompute = () => {
         let s1 = codeTextArea1.value;
         let s2 = codeTextArea2.value;

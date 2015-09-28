@@ -24,16 +24,16 @@ let precomputedQuantumOutcomeForDefaultStrategy = ChshGameOutcomeCounts.fromCoun
     Seq.range(16).toMap(i => ChshGameOutcomeCounts.caseToKey(i & 8, i & 2, i & 4, i & 1), i => quantumRecorded[i]));
 
 wireGame(
-    document.getElementById('srcTextArea1_classical'),
-    document.getElementById('srcTextArea2_classical'),
-    document.getElementById('rateLabel_classical'),
-    document.getElementById('countLabel_classical'),
-    document.getElementById('judgementLabel_classical'),
-    document.getElementById('errorLabel_classical'),
-    document.getElementById('resultsDiv_classical'),
-    document.getElementById('drawCanvas_classical'),
+    document.getElementById('srcTextArea1_a'),
+    document.getElementById('srcTextArea2_a'),
+    document.getElementById('rateLabel_a'),
+    document.getElementById('countLabel_a'),
+    document.getElementById('judgementLabel_a'),
+    document.getElementById('errorLabel_a'),
+    document.getElementById('resultsTable_a'),
+    document.getElementById('drawCanvas_a'),
     "// write any strategy you want!\nmove = false",
-    "// write any strategy you want!\nmove = refChoice && sharedBits[0];",
+    "// write any strategy you want!\nmove = refChoice && sharedBits[0]",
     precomputedClassicalOutcomeForDefaultStrategy,
     (code1, code2, runs, cancellor) => asyncEvalClassicalChshGameRuns(
         code1,
@@ -44,15 +44,15 @@ wireGame(
         cancellor));
 
 wireGame(
-    document.getElementById('srcTextArea1_quantum'),
-    document.getElementById('srcTextArea2_quantum'),
-    document.getElementById('rateLabel_quantum'),
-    document.getElementById('countLabel_quantum'),
-    document.getElementById('judgementLabel_quantum'),
-    document.getElementById('errorLabel_quantum'),
-    document.getElementById('resultsDiv_quantum'),
-    document.getElementById('drawCanvas_quantum'),
-    "turn(X, -45)\nif (refChoice) turn(X, 90)\nmove = measure()",
+    document.getElementById('srcTextArea1_b'),
+    document.getElementById('srcTextArea2_b'),
+    document.getElementById('rateLabel_b'),
+    document.getElementById('countLabel_b'),
+    document.getElementById('judgementLabel_b'),
+    document.getElementById('errorLabel_b'),
+    document.getElementById('resultsDiv_b'),
+    document.getElementById('drawCanvas_b'),
+    "turn(X, -45)  //rotate qubit -45\u00B0 around X axis\nif (refChoice) turn(X, 90)\nmove = measure()",
     "if (refChoice) turn(X, 90)\nmove = measure()",
     precomputedQuantumOutcomeForDefaultStrategy,
     (code1, code2, runs, cancellor) => asyncEvalQuantumChshGameRuns(

@@ -7,124 +7,137 @@
         <script src="../dev/alert_on_error.js"></script>
     </head>
     <body>
-        <div style="width: 850px; border: 1px solid black">
-            <table align="center" style="background-color: #EEE;">
-                <tr>
-                    <td align="left">
-                        // === Alice and Bob agree on a plan ===<br/>
-                        // they share some correlated random coin flips, to be looked at later<br/>
-                        var sharedBits = [Math.random() < 0.5, Math.random() < 0.5, …]
-                    </td>
-                </tr>
+        <style scoped>
+            table {
+                margin: 0 auto;
+                border-spacing: 0;
+            }
+
+            table, td, tr {
+                padding: 0;
+            }
+
+            textarea {
+                width: 350px;
+                resize: vertical;
+            }
+
+            .codeBlock {
+                background-color:#EEE;
+                padding: 4px;
+            }
+
+            .hued {
+                filter: hue-rotate(90deg);
+                -webkit-filter: hue-rotate(90deg);
+            }
+
+            .resultTable {
+                background-color: #EEE;
+                padding: 3px 3px 0 3px;
+                margin-top: 10px;
+                border-spacing: 3px;
+            }
+        </style>
+
+
+        <div style="width: 850px;">
+            <table align="center" style="background-color: #EEE; padding: 2px;">
+                <tr><td align="left">var sharedBits = [Math.random() < 0.5, Math.random() < 0.5, …]</td></tr>
             </table>
-            <div style="display: inline-block; background-color: #DDD; padding: 4px; margin: 4px;">
-                <div>
-                    var refChoice = true or false
-                    <br/>
-                    // === ALICE'S STRATEGY ===
-                    <br/>
-                    var move;
-                </div>
-                <textarea id="srcTextArea1_classical" rows="5" style="width:400px;"></textarea>
+
+            <img src="../Separate.png" style="margin: 0 auto; padding: 0; display: block;"/>
+
+            <div class="codeBlock" style="margin-left: 4px; float:left;">
+                <div>var refChoice = Math.random() < 0.5;<br/>var move; //ALICE's move</div>
+                <textarea id="srcTextArea1_a" rows="4"></textarea>
             </div>
-            <div style="display: inline-block; text-align: right; background-color: #DDD; padding: 4px; margin: 4px;">
-                <div style="text-align: left;">
-                    var refChoice = true or false
-                    <br/>
-                    // === BOB'S STRATEGY ===
-                    <br/>
-                    var move;
-                </div>
-                <textarea id="srcTextArea2_classical" rows="5" style="width:400px;"></textarea>
+            <div class="codeBlock" style="margin-right: 4px; float:right;">
+                <div style="text-align: left;">var refChoice = Math.random() < 0.5;<br/>var move; //BOB's move</div>
+                <textarea id="srcTextArea2_a" rows="4"></textarea>
             </div>
 
-            <div style="text-align: center;">
-                <label id="errorLabel_classical" style="font: 16pt bold Helvetica; color: red">
-                    ERROR: javascript disabled
-                </label>
-            </div>
-            <div id="resultsDiv_classical" style="text-align: center;">
-                <table align="center" style="background-color: #EEE;">
-                    <tr>
-                        <td align="right">Estimated Win Rate:</td>
-                        <td align="left"><label id="rateLabel_classical" style="font-weight: bold;"></label></td>
-                    </tr>
-                    <tr>
-                        <td align="right">Violated Bell Inequality:</td>
-                        <td align="left"><label id="judgementLabel_classical" style="font-weight: bold;"></label></td>
-                    </tr>
-                    <tr>
-                        <td align="right">Measured Wins:</td>
-                        <td align="left"><label id="countLabel_classical"></label></td>
-                    </tr>
-                    <tr>
-                        <td align="right">Full Breakdown:</td>
-                        <td align="left"><canvas id="drawCanvas_classical" width="370px" height="370px"></canvas></td>
-                    </tr>
-                </table>
-
-
-            </div>
+            <table><tr style="vertical-align: top;">
+                <td><img src="../Compare.png"/></td>
+                <td>
+                    <div style="text-align: center;">
+                        <label id="errorLabel_a" style="font: 16pt bold Helvetica; color: red">
+                            ERROR: javascript disabled
+                        </label>
+                    </div>
+                    <table id="resultsTable_a" class="resultTable">
+                        <tr>
+                            <td align="right">Estimated Win Rate:</td>
+                            <td align="left"><label id="rateLabel_a" style="font-weight: bold;"></label></td>
+                        </tr>
+                        <tr>
+                            <td align="right">Violated Bell Inequality:</td>
+                            <td align="left"><label id="judgementLabel_a" style="font-weight: bold;"></label></td>
+                        </tr>
+                        <tr>
+                            <td align="right">Measured Wins:</td>
+                            <td align="left"><label id="countLabel_a"></label></td>
+                        </tr>
+                        <tr>
+                            <td align="right">Outcome Breakdown:</td>
+                            <td align="left"><canvas id="drawCanvas_a" width="281px" height="281px"></canvas></td>
+                        </tr>
+                    </table>
+                </td>
+                <td><img src="../Compare.png" style="transform:scaleX(-1);"/></td>
+            </tr></table>
         </div>
-        <div style="width: 850px; border: 1px solid black">
-            <table align="center" style="background-color: #EEE;">
-                <tr>
-                    <td align="left">
-                        // === Alice and Bob agree on a plan ===<br/>
-                        // they share some correlated random coin flips, to be looked at later<br/>
-                        var sharedBits = [Math.random() < 0.5, Math.random() < 0.5, …]
-                    </td>
-                </tr>
+
+        <br/>
+        <br/>
+
+        <div style="width: 850px;">
+            <table align="center" style="background-color: #EEE; padding: 2px;">
+                <tr><td align="left">sharedQubit = |00〉+ |11〉</td></tr>
             </table>
-            <div style="display: inline-block; background-color: #DDD; padding: 4px; margin: 4px;">
-                <div>
-                    var refChoice = true or false
-                    <br/>
-                    // === ALICE'S STRATEGY ===
-                    <br/>
-                    var move;
-                </div>
-                <textarea id="srcTextArea1_quantum" rows="5" style="width:400px;"></textarea>
+
+            <img src="../Separate.png" class="hued" style="margin: 0 auto; padding: 0; display: block;"/>
+
+            <div class="codeBlock" style="margin-left: 4px; float:left;">
+                <div>var refChoice = Math.random() < 0.5;<br/>var move; //ALICE's move</div>
+                <textarea id="srcTextArea1_b" rows="4"></textarea>
             </div>
-            <div style="display: inline-block; text-align: right; background-color: #DDD; padding: 4px; margin: 4px;">
-                <div style="text-align: left;">
-                    var refChoice = true or false
-                    <br/>
-                    // === BOB'S STRATEGY ===
-                    <br/>
-                    var move;
-                </div>
-                <textarea id="srcTextArea2_quantum" rows="5" style="width:400px;"></textarea>
+            <div class="codeBlock" style="margin-right: 4px; float:right;">
+                <div style="text-align: left;">var refChoice = Math.random() < 0.5;<br/>var move; //BOB's move</div>
+                <textarea id="srcTextArea2_b" rows="4"></textarea>
             </div>
 
-            <div style="text-align: center;">
-                <label id="errorLabel_quantum" style="font: 16pt bold Helvetica; color: red">
-                    ERROR: javascript disabled
-                </label>
-            </div>
-            <div id="resultsDiv_quantum" style="text-align: center;">
-                <table align="center" style="background-color: #EEE;">
-                    <tr>
-                        <td align="right">Estimated Win Rate:</td>
-                        <td align="left"><label id="rateLabel_quantum" style="font-weight: bold;"></label></td>
-                    </tr>
-                    <tr>
-                        <td align="right">Violated Bell Inequality:</td>
-                        <td align="left"><label id="judgementLabel_quantum" style="font-weight: bold;"></label></td>
-                    </tr>
-                    <tr>
-                        <td align="right">Measured Wins:</td>
-                        <td align="left"><label id="countLabel_quantum"></label></td>
-                    </tr>
-                    <tr>
-                        <td align="right">Full Breakdown:</td>
-                        <td align="left"><canvas id="drawCanvas_quantum" width="370px" height="370px"></canvas></td>
-                    </tr>
-                </table>
-
-
-            </div>
+            <table><tr style="vertical-align: top;">
+                <td><img src="../Compare.png" class="hued"/></td>
+                <td>
+                    <div style="text-align: center;">
+                        <label id="errorLabel_b" style="font: 16pt bold Helvetica; color: red">
+                            ERROR: javascript disabled
+                        </label>
+                    </div>
+                    <table id="resultsTable_b" class="resultTable">
+                        <tr>
+                            <td align="right">Estimated Win Rate:</td>
+                            <td align="left"><label id="rateLabel_b" style="font-weight: bold;"></label></td>
+                        </tr>
+                        <tr>
+                            <td align="right">Violated Bell Inequality:</td>
+                            <td align="left"><label id="judgementLabel_b" style="font-weight: bold;"></label></td>
+                        </tr>
+                        <tr>
+                            <td align="right">Measured Wins:</td>
+                            <td align="left"><label id="countLabel_b"></label></td>
+                        </tr>
+                        <tr>
+                            <td align="right">Outcome Breakdown:</td>
+                            <td align="left"><canvas id="drawCanvas_b" width="281px" height="281px"></canvas></td>
+                        </tr>
+                    </table>
+                </td>
+                <td><img src="../Compare.png" class="hued" style="transform:scaleX(-1);"/></td>
+            </tr></table>
         </div>
+
 
         <script src="../out/all_src.js"></script>
     </body>
