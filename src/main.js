@@ -52,7 +52,7 @@ wireGame(
     document.getElementById('errorLabel_b'),
     document.getElementById('resultsDiv_b'),
     document.getElementById('drawCanvas_b'),
-    "turn(X, -45)  //rotate qubit -45\u00B0 around X axis\nif (refChoice) turn(X, 90)\nmove = measure()",
+    "turn(X, -45) //rotate qubit -45\u00B0 around X axis\nif (refChoice) turn(X, 90)\nmove = measure()",
     "if (refChoice) turn(X, 90)\nmove = measure()",
     precomputedQuantumOutcomeForDefaultStrategy,
     (code1, code2, runs, cancellor) => asyncEvalQuantumChshGameRuns(
