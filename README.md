@@ -6,11 +6,19 @@ An interactive javascript widget that allows you to try custom classical and qua
 
 **Building**
 
-Use `Node.js` commands to transpile and concatenate the javascript code into a single 'all_src.js' file in `out/`. The html and other resources are also copied into `out/` when building. Opening the `index.html` in `out/` with a browser should give a working instance of the widget.
+Use Node.js commands to transpile and concatenate the javascript code into a single 'all_src.js' file in `out/`. The html and other resources are also copied into `out/` when building. Opening the `index.html` in `out/` with a browser after building should give a working instance of the widget.
+
+To install dependencies used during building:
 
     npm install
     npm install -g grunt-cli
+
+To run the unit tests (attempts to run the tests on both Chrome and Firefox, so those need to be installed):
+
     npm test
+
+To generate a working version of the widget in `out/`:
+
     npm run build
 
 **The CHSH game**
