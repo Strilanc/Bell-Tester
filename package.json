@@ -1,7 +1,9 @@
 {
-  "name": "BellTester",
+  "name": "strilanc-bell-tester",
   "title": "Bell Tester",
-  "version": "0.1.0",
+  "description": "An html/javascript widget for trying out classical and quantum strategies on the CHSH game.",
+  "license": "Apache-2.0",
+  "version": "1.0.0",
   "homepage": "https://github.com/Strilanc/Bell-Tester",
   "bugs": {
     "url": "https://github.com/Strilanc/Bell-Tester/issues"
