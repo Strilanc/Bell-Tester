@@ -703,6 +703,17 @@ suite.test("toMap", () => {
     assertThat(new Seq([2, 3, 4]).toMap(e => e, e => e * e)).isEqualTo(new Map([[2, 4], [3, 9], [4, 16]]));
 });
 
+suite.test("keyedBy", () => {
+    assertThrows(() => new Seq([32, 2]).keyedBy(e => e % 3));
+    assertThrows(() => new Seq([32, 3, 2]).keyedBy(e => e % 3));
+
+    assertThat(new Seq([]).keyedBy(() => { throw new Error(); })).isEqualTo(new Map());
+
+    assertThat(new Seq([32]).keyedBy(e => e % 3)).isEqualTo(new Map([[2, 32]]));
+    assertThat(new Seq([32, 3]).keyedBy(e => e % 3)).isEqualTo(new Map([[0, 3], [2, 32]]));
+    assertThat(new Seq([1, 2, 3]).keyedBy(e => e % 3)).isEqualTo(new Map([[0, 3], [1, 1], [2, 2]]));
+});
+
 suite.test("groupBy", () => {
     assertThat(new Seq([]).groupBy(() => { throw new Error(); })).isEqualTo(new Map());
 

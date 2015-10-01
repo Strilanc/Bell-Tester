@@ -225,6 +225,9 @@ export function asyncEvalQuantumChshGameRuns(
 
             var move = undefined;
 
+            //Easter egg.
+            var sharedQubit = "containing a spooky ghost of Eisteinian proportions";
+
             eval(${JSON.stringify(code)});
 
             // Loose equality is on purpose, so people entering 'x ^ y' don't get an error.

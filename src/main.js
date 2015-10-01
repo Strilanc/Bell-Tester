@@ -50,7 +50,7 @@ wireGame(
     document.getElementById('countLabel_b'),
     document.getElementById('judgementLabel_b'),
     document.getElementById('errorLabel_b'),
-    document.getElementById('resultsDiv_b'),
+    document.getElementById('resultsTable_b'),
     document.getElementById('drawCanvas_b'),
     "turn(X, -45) //rotate qubit -45\u00B0 around X axis\nif (refChoice) turn(X, 90)\nmove = measure()",
     "if (refChoice) turn(X, 90)\nmove = measure()",
