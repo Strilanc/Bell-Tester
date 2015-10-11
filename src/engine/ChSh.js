@@ -232,6 +232,7 @@ export function asyncEvalQuantumChshGameRuns(
 
             //Easter egg.
             var sharedQubit = "containing a spooky ghost of Eisteinian proportions";
+            var sharedQubits = [sharedQubit];
 
             eval(${JSON.stringify(code)});
 
