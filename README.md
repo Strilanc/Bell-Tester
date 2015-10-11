@@ -7,7 +7,7 @@ Also includes a no-communication theorem tester.
 
 Screenshot of beating the test in the quantum strategy widget:
 
-![README_screenshot.png](quantum strategy beating the test)
+![quantum strategy beating the test](README_screenshot.png)
 
 **Building**
 
