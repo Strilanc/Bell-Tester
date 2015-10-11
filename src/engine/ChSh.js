@@ -108,6 +108,7 @@ export function asyncEvalClassicalChshGameRuns(
     let round = `__i_${dontTouchMyStuffSuffix}`;
     let allSharedBits = `__shared_${dontTouchMyStuffSuffix}`;
     let moves = `__moves_${dontTouchMyStuffSuffix}`;
+    let rand = `__rand_${dontTouchMyStuffSuffix}`;
 
     let allSharedBitsArrayText = JSON.stringify(Seq.range(count).
         map(() => Math.floor(Math.random() * (1 << sharedBitCount))).
@@ -141,6 +142,7 @@ export function asyncEvalClassicalChshGameRuns(
         (function() {
             var ${allSharedBits} = ${allSharedBitsArrayText};
             var ${moves} = [];
+            var ${rand} = Math.random;
             for (var ${round} = 0; ${round} < ${count}; ${round}++) {
                 var sharedBits = [];
                 var i;
@@ -149,7 +151,7 @@ export function asyncEvalClassicalChshGameRuns(
                 }
                 i = undefined;
 
-                var refChoice = Math.random() < 0.5;
+                var refChoice = ${rand}() < 0.5;
                 ${moves}.push(refChoice);
                 ${moves}.push(new ${CustomType}().invokeCode(refChoice, sharedBits));
             };
@@ -195,6 +197,9 @@ export function asyncEvalQuantumChshGameRuns(
     let rotateFunc = `__rotate_${dontTouchMyStuffSuffix}`;
     let measureFunc = `__measure_${dontTouchMyStuffSuffix}`;
     let amplitudes = `__amps_${dontTouchMyStuffSuffix}`;
+    let rand = `__rand_${dontTouchMyStuffSuffix}`;
+    let sqrt = `__sqrt_${dontTouchMyStuffSuffix}`;
+    let float32Array = `__float32array_${dontTouchMyStuffSuffix}`;
 
     // Avoid revealing the suffix of the other items via 'this.constructor.toString()'.
     let dontTouchMyStuffSuffix2 = Seq.range(10).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
@@ -238,25 +243,30 @@ export function asyncEvalQuantumChshGameRuns(
         };`;
 
     let wrappedCode = `
-        var ${amplitudes}; // <-- weakpoint
+        var ${amplitudes};
         var ${rotateFunc} = ${ROTATE_FUNC_STRING};
         var ${measureFunc} = ${MEASURE_FUNC_STRING};
         function ${CustomType}() {}
         ${createInvokeFunction(code1, 0)};
         ${createInvokeFunction(code2, 1)};
         (function() {
+            // Stash functions that user code can re-assign.
+            var ${rand} = Math.random;
+            var ${sqrt} = Math.sqrt;
+            var ${float32Array} = Float32Array;
+
             var ${round} = 0;
             var ${moves} = [];
             for (; ${round} < ${count}; ${round}++) {
                 // Create pre-shared entangled 00+11 state.
-                ${amplitudes} = new Float32Array(2 << 2);
-                ${amplitudes}[0] = Math.sqrt(0.5);
-                ${amplitudes}[6] = Math.sqrt(0.5);
+                ${amplitudes} = new ${float32Array}(2 << 2);
+                ${amplitudes}[0] = ${sqrt}(0.5);
+                ${amplitudes}[6] = ${sqrt}(0.5);
 
                 // Note: order shouldn't matter.
                 // Also, because these are run in the same web worker, it's much easier for them to cheat..
-                var refChoice1 = Math.random() < 0.5;
-                var refChoice2 = Math.random() < 0.5;
+                var refChoice1 = ${rand}() < 0.5;
+                var refChoice2 = ${rand}() < 0.5;
                 ${moves}.push(refChoice1);
                 ${moves}.push(refChoice2);
                 ${moves}.push(new ${CustomType}().invokeCode0(refChoice1));
