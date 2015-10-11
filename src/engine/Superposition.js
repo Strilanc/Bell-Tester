@@ -8,6 +8,16 @@ export const ROTATE_FUNC_STRING = `
         // U = |z    x-iy|
         //     |x+iy   -z|
 
+        var isGoodNumber = function(val) {
+            return typeof val === "number" && isFinite(val) && val > -100000 && val < 100000;
+        };
+        if (!isGoodNumber(theta)) throw Error("Bad turn angle");
+        if (!isGoodNumber(x)) throw Error("Bad turn axis x");
+        if (!isGoodNumber(y)) throw Error("Bad turn axis y");
+        if (!isGoodNumber(z)) throw Error("Bad turn axis z");
+        var e = x*x + y*y + z*z - 1;
+        if (e*e > 0.0001) throw Error("Bad turn axis length")
+
         // p = (-1)^t = cos(theta) + i sin(theta)
         var pr = Math.cos(theta);
         var pi = Math.sin(theta);

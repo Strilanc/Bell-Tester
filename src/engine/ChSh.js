@@ -244,15 +244,15 @@ export function asyncEvalQuantumChshGameRuns(
 
     let wrappedCode = `
         var ${amplitudes};
-        var ${rotateFunc} = ${ROTATE_FUNC_STRING};
-        var ${measureFunc} = ${MEASURE_FUNC_STRING};
+        var ${rand} = Math.random;
+        var ${sqrt} = Math.sqrt;
+        var ${rotateFunc} = ${ROTATE_FUNC_STRING.replace("Math.random", rand).replace("Math.sqrt", sqrt)};
+        var ${measureFunc} = ${MEASURE_FUNC_STRING.replace("Math.random", rand).replace("Math.sqrt", sqrt)};
         function ${CustomType}() {}
         ${createInvokeFunction(code1, 0)};
         ${createInvokeFunction(code2, 1)};
         (function() {
             // Stash functions that user code can re-assign.
-            var ${rand} = Math.random;
-            var ${sqrt} = Math.sqrt;
             var ${float32Array} = Float32Array;
 
             var ${round} = 0;
