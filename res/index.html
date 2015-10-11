@@ -139,6 +139,54 @@
         </div>
 
 
+        <div style="width: 850px;">
+            <table align="center" style="background-color: #EEE; padding: 2px;">
+                <tr><td align="left">sharedQubit = |00〉+ |11〉</td></tr>
+            </table>
+
+            <img src="Separate.png" class="hued" style="margin: 0 auto; padding: 0; display: block;"/>
+
+            <div class="codeBlock" style="margin-left: 4px; float:left; font-size: 11pt;">
+                <div>var refChoice = Math.random() < 0.5; //ALICE's value to send</div>
+                <textarea id="srcTextArea1_c" rows="4"></textarea>
+            </div>
+            <div class="codeBlock" style="margin-right: 4px; float:right;">
+                <div style="text-align: left;">var move; //BOB's received value</div>
+                <textarea id="srcTextArea2_c" rows="4"></textarea>
+            </div>
+
+            <table><tr style="vertical-align: top;">
+                <td><img src="Compare.png" class="hued"/></td>
+                <td>
+                    <div style="text-align: center; max-width: 450px;">
+                        <label id="errorLabel_c" style="font: 16pt bold Helvetica; color: red">
+                            ERROR: javascript disabled
+                        </label>
+                    </div>
+                    <table id="resultsTable_c" class="resultTable" style="width: 450px;">
+                        <tr>
+                            <td align="right">Estimated Hit Rate:</td>
+                            <td align="left"><label id="rateLabel_c" style="font-weight: bold;"></label></td>
+                        </tr>
+                        <tr>
+                            <td align="right">Communicating:</td>
+                            <td align="left"><label id="judgementLabel_c" style="font-weight: bold;"></label></td>
+                        </tr>
+                        <tr>
+                            <td align="right" style="width: 200px;">Measured Hits:</td>
+                            <td align="left"><label id="countLabel_c"></label></td>
+                        </tr>
+                        <tr>
+                            <td align="right">Outcome Breakdown:</td>
+                            <td align="left"><canvas id="drawCanvas_c" width="171px" height="171px"></canvas></td>
+                        </tr>
+                    </table>
+                </td>
+                <td><img src="Compare.png" class="hued" style="transform:scaleX(-1);"/></td>
+            </tr></table>
+        </div>
+
+
         <script src="all_src.js"></script>
     </body>
 </html>

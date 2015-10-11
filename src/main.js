@@ -17,10 +17,18 @@ let quantumRecorded = [
     10581, 1835, 1849, 10811,
     1817, 10643, 10672, 1830
 ];
+let signallingRecorded = [
+    24921, 0, 0, 0,
+    24960, 0, 0, 0,
+    25070, 0, 0, 0,
+    25049, 0, 0, 0
+];
 
 let precomputedClassicalOutcomeForDefaultStrategy = ChshGameOutcomeCounts.fromCountsByMap(
     Seq.range(16).toMap(i => ChshGameOutcomeCounts.caseToKey(i & 8, i & 2, i & 4, i & 1), i => classicalRecorded[i]));
 let precomputedQuantumOutcomeForDefaultStrategy = ChshGameOutcomeCounts.fromCountsByMap(
+    Seq.range(16).toMap(i => ChshGameOutcomeCounts.caseToKey(i & 8, i & 2, i & 4, i & 1), i => quantumRecorded[i]));
+let precomputedSignallingOutcomeForDefaultStrategy = ChshGameOutcomeCounts.fromCountsByMap(
     Seq.range(16).toMap(i => ChshGameOutcomeCounts.caseToKey(i & 8, i & 2, i & 4, i & 1), i => quantumRecorded[i]));
 
 wireGame(
@@ -61,3 +69,23 @@ wireGame(
         runs,
         ASYNC_EVAL_TIMEOUT,
         cancellor));
+
+wireGame(
+    document.getElementById('srcTextArea1_c'),
+    document.getElementById('srcTextArea2_c'),
+    document.getElementById('rateLabel_c'),
+    document.getElementById('countLabel_c'),
+    document.getElementById('judgementLabel_c'),
+    document.getElementById('errorLabel_c'),
+    document.getElementById('resultsTable_c'),
+    document.getElementById('drawCanvas_c'),
+    "if (refChoice) {\n  turn(X, 90)\n  measure()\n}",
+    "turn(Y, 45)\nmove = measure()",
+    precomputedQuantumOutcomeForDefaultStrategy,
+    (code1, code2, runs, cancellor) => asyncEvalQuantumChshGameRuns(
+        "move=false;" + code1,
+        code2,
+        runs,
+        ASYNC_EVAL_TIMEOUT,
+        cancellor),
+    true);

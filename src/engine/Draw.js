@@ -30,31 +30,58 @@ function fillCenteredText(ctx, text, x, y, rotation=0) {
  * @param {!CanvasRenderingContext2D} ctx
  * @param {!ChshGameOutcomeCounts} outcomes
  * @param {!function(!string)} labelSetter
+ * @param {!boolean} noWaitActuallyDoSignalling Hacky param to re-use existing code for drawing alternative game. Sorry.
  */
-export function drawOutcomeStats(ctx, outcomes, labelSetter) {
+export function drawChshOutcomeStats(ctx, outcomes, labelSetter, noWaitActuallyDoSignalling) {
     let playCount = outcomes.countPlays();
     let winCount = outcomes.countWins();
+    if (noWaitActuallyDoSignalling) {
+        winCount =
+            outcomes.countForCase(true, false, false, true) +
+            outcomes.countForCase(true, false, true, true) +
+            outcomes.countForCase(true, true, false, true) +
+            outcomes.countForCase(true, true, true, true) +
+            outcomes.countForCase(false, false, false, false) +
+            outcomes.countForCase(false, false, true, false) +
+            outcomes.countForCase(false, true, false, false) +
+            outcomes.countForCase(false, true, true, false);
+
+    }
+
     let mean = winCount/playCount;
 
     // Not really correct.. but close enough.
     let sampleMean = (winCount+1)/(playCount+2);
     let sampleStdDev = Math.sqrt(sampleMean*(1-sampleMean)/(playCount+1));
     let errorBars = 3*sampleStdDev;
-    let over = (Math.max(mean, 1 - mean) - 0.75) / sampleStdDev;
 
-    let msg1 = `~${(100*mean).toFixed(1)}% (\u00B1${(errorBars*100).toFixed(1)}%)`;
-    let msg2 = `${winCount} wins out of ${playCount} plays`;
-    let msg3 =
-        over <= 1 ? 'No' :
-        over <= 3 ? 'Probably Not' /* about 1 in 6 by chance */ :
-        over <= 5 ? 'Maybe. Could be lucky? \u03C3>3' /* about 1 in 750 by chance */ :
-        'Looks like it! \u03C3>5' /* about 1 in 30000 by chance */;
-    labelSetter(msg1 + '\n' + msg2 + '\n' + msg3);
+    if (noWaitActuallyDoSignalling) {
+        let over = (Math.max(mean, 1 - mean) - 0.5) / sampleStdDev;
+        let msg1 = `~${(100*mean).toFixed(1)}% (\u00B1${(errorBars*100).toFixed(1)}%)`;
+        let msg2 = `${winCount} correct out of ${playCount}`;
+        let msg3 =
+            over <= 1 ? 'Nope. Just noise.' :
+            over <= 3 ? 'Probably Not.' /* about 1 in 6 by chance */ :
+            over <= 5 ? 'Maybe. Or lucky? \u03C3>3' /* about 1 in 750 by chance */ :
+            'Looks like it! \u03C3>5' /* about 1 in 30000 by chance */;
+        labelSetter(msg1 + '\n' + msg2 + '\n' + msg3);
+    } else {
+        let over = (Math.max(mean, 1 - mean) - 0.75) / sampleStdDev;
+        let msg1 = `~${(100*mean).toFixed(1)}% (\u00B1${(errorBars*100).toFixed(1)}%)`;
+        let msg2 = `${winCount} wins out of ${playCount} plays`;
+        let msg3 =
+            over <= 1 ? 'No' :
+            over <= 3 ? 'Probably Not' /* about 1 in 6 by chance */ :
+            over <= 5 ? 'Maybe. Could be lucky? \u03C3>3' /* about 1 in 750 by chance */ :
+            'Looks like it! \u03C3>5' /* about 1 in 30000 by chance */;
+        labelSetter(msg1 + '\n' + msg2 + '\n' + msg3);
+    }
     let inset = HEADER_UNIT*6;
 
     // Draw data.
     ctx.clearRect(0, 0, 16*CELL_SPAN+10, 16*CELL_SPAN+10);
-    for (let i = 0; i < 16; i++) {
+    let numCases = noWaitActuallyDoSignalling ? 4 : 16;
+    for (let i = 0; i < numCases; i++) {
         // Compute case stats.
         let move2 = (i & 1) !== 0;
         let ref2 = (i & 2) !== 0;
@@ -62,8 +89,19 @@ export function drawOutcomeStats(ctx, outcomes, labelSetter) {
         let ref1 = (i & 8) !== 0;
         let x = inset + (i & 3) * CELL_SPAN;
         let y = inset + ((i & 0xC) >> 2) * CELL_SPAN;
-        let caseCount = outcomes.countForCase(ref1, ref2, move1, move2);
         let isGoodCase = ChshGameOutcomeCounts.caseToIsWin(ref1, ref2, move1, move2);
+        let caseCount = outcomes.countForCase(ref1, ref2, move1, move2);
+        if (noWaitActuallyDoSignalling) {
+            x = inset + (i & 1) * CELL_SPAN;
+            y = inset + ((i & 2) >> 1) * CELL_SPAN;
+            ref1 = (i & 2) !== 0;
+            caseCount =
+                outcomes.countForCase(ref1, false, false, move2) +
+                outcomes.countForCase(ref1, true, false, move2) +
+                outcomes.countForCase(ref1, false, true, move2) +
+                outcomes.countForCase(ref1, true, true, move2);
+            isGoodCase = move2 == ref1;
+        }
         let casePortion = caseCount / playCount;
 
         // Draw cell background.
@@ -105,28 +143,47 @@ export function drawOutcomeStats(ctx, outcomes, labelSetter) {
                 ctx.stroke();
             };
 
-        // Dividers.
-        ctx.lineWidth = 1.5;
-        line(2*CELL_SPAN, HEADER_UNIT*2, 0, HEADER_UNIT*4 + TABLE_SPAN); // Center column divider.
-        ctx.lineWidth = 0.5;
-        line(0, HEADER_UNIT*4, TABLE_SPAN, 0); // Divider between name / refChoice.
-        line(0, HEADER_UNIT*2, TABLE_SPAN, 0); // Divider between refChoice / move.
-        line(0, HEADER_UNIT*2, 0, HEADER_UNIT*4 + TABLE_SPAN); // Left border.
-        line(CELL_SPAN, HEADER_UNIT*4, 0, HEADER_UNIT*2 + TABLE_SPAN); // Left-center column divider.
-        line(CELL_SPAN*3, HEADER_UNIT*4, 0, HEADER_UNIT*2 + TABLE_SPAN); // Right-center column divider.
-        line(TABLE_SPAN, HEADER_UNIT*2, 0, HEADER_UNIT*4 + TABLE_SPAN); // Right border.
+        if (noWaitActuallyDoSignalling) {
+            // Dividers.
+            ctx.lineWidth = 0.5;
+            line(0, HEADER_UNIT*4, TABLE_SPAN/2, 0); // Divider between name / refChoice.
+            line(0, HEADER_UNIT*2, TABLE_SPAN/2, 0); // Divider between refChoice / move.
+            line(0, HEADER_UNIT*2, 0, HEADER_UNIT*4 + TABLE_SPAN/2); // Left border.
+            line(CELL_SPAN, HEADER_UNIT*4, 0, HEADER_UNIT*2 + TABLE_SPAN/2); // Left-center column divider.
+            line(TABLE_SPAN/2, HEADER_UNIT*2, 0, HEADER_UNIT*4 + TABLE_SPAN/2); // Right border.
 
-        // Header cell text.
-        ctx.font = "12pt Helvetica";
-        print(name, 2*CELL_SPAN, HEADER_UNIT);
-        ctx.font = "10pt Helvetica";
-        print("refChoice: False", CELL_SPAN, HEADER_UNIT*3);
-        print("refChoice: True", CELL_SPAN*3, HEADER_UNIT*3);
-        ctx.font = "8pt Helvetica";
-        print("move:false", CELL_SPAN/2, HEADER_UNIT*5);
-        print("move:true", CELL_SPAN + CELL_SPAN/2, HEADER_UNIT*5);
-        print("move:false", CELL_SPAN*2 + CELL_SPAN/2, HEADER_UNIT*5);
-        print("move:true", CELL_SPAN*3 + CELL_SPAN/2, HEADER_UNIT*5);
+            // Header cell text.
+            ctx.font = "12pt Helvetica";
+            print(name, CELL_SPAN, HEADER_UNIT);
+            ctx.font = "10pt Helvetica";
+            print(i == 1 ? "send" : "receive", CELL_SPAN, HEADER_UNIT*3);
+            ctx.font = "8pt Helvetica";
+            print("false", CELL_SPAN/2, HEADER_UNIT*5);
+            print("true", CELL_SPAN + CELL_SPAN/2, HEADER_UNIT*5);
+        } else {
+            // Dividers.
+            ctx.lineWidth = 1.5;
+            line(2*CELL_SPAN, HEADER_UNIT*2, 0, HEADER_UNIT*4 + TABLE_SPAN); // Center column divider.
+            ctx.lineWidth = 0.5;
+            line(0, HEADER_UNIT*4, TABLE_SPAN, 0); // Divider between name / refChoice.
+            line(0, HEADER_UNIT*2, TABLE_SPAN, 0); // Divider between refChoice / move.
+            line(0, HEADER_UNIT*2, 0, HEADER_UNIT*4 + TABLE_SPAN); // Left border.
+            line(CELL_SPAN, HEADER_UNIT*4, 0, HEADER_UNIT*2 + TABLE_SPAN); // Left-center column divider.
+            line(CELL_SPAN*3, HEADER_UNIT*4, 0, HEADER_UNIT*2 + TABLE_SPAN); // Right-center column divider.
+            line(TABLE_SPAN, HEADER_UNIT*2, 0, HEADER_UNIT*4 + TABLE_SPAN); // Right border.
+
+            // Header cell text.
+            ctx.font = "12pt Helvetica";
+            print(name, 2*CELL_SPAN, HEADER_UNIT);
+            ctx.font = "10pt Helvetica";
+            print("refChoice: False", CELL_SPAN, HEADER_UNIT*3);
+            print("refChoice: True", CELL_SPAN*3, HEADER_UNIT*3);
+            ctx.font = "8pt Helvetica";
+            print("move:false", CELL_SPAN/2, HEADER_UNIT*5);
+            print("move:true", CELL_SPAN + CELL_SPAN/2, HEADER_UNIT*5);
+            print("move:false", CELL_SPAN*2 + CELL_SPAN/2, HEADER_UNIT*5);
+            print("move:true", CELL_SPAN*3 + CELL_SPAN/2, HEADER_UNIT*5);
+        }
     }
 }
 
@@ -143,6 +200,7 @@ export function drawOutcomeStats(ctx, outcomes, labelSetter) {
  * @param {!string} initialCode2
  * @param {!ChshGameOutcomeCounts} precomputedInitialOutcome
  * @param {!function(!string, !string, int, !function(!function()))} asyncGameRunner
+ * @param {!boolean} noWaitActuallyDoSignalling Hacky param to re-use existing code for drawing alternative game. Sorry.
  */
 export function wireGame(
         codeTextArea1,
@@ -156,7 +214,8 @@ export function wireGame(
         initialCode1,
         initialCode2,
         precomputedInitialOutcome,
-        asyncGameRunner) {
+        asyncGameRunner,
+        noWaitActuallyDoSignalling = false) {
     codeTextArea1.value = initialCode1;
     codeTextArea2.value = initialCode2;
     let ctx = canvas.getContext('2d');
@@ -198,7 +257,11 @@ export function wireGame(
             () => asyncGameRunner(s1, s2, GAME_RUNS_PER_CHUNK, cancellorAdd),
             partialOutcomes => {
                 totalOutcomes = totalOutcomes.mergedWith(partialOutcomes); // I miss reactive observables...
-                drawOutcomeStats(ctx, totalOutcomes, e => labelEventualSet(Promise.resolve(e)));
+                drawChshOutcomeStats(
+                    ctx,
+                    totalOutcomes,
+                    e => labelEventualSet(Promise.resolve(e)),
+                    noWaitActuallyDoSignalling);
             },
             ex => labelEventualSet(delayed(ex, SHOW_ERR_GRACE_PERIOD, true)),
             RUN_CHUNK_COUNT,
@@ -215,5 +278,9 @@ export function wireGame(
     }
 
     // Show a default result on startup (instead of applying any compute load).
-    drawOutcomeStats(ctx, precomputedInitialOutcome, e => labelEventualSet(Promise.resolve(e)));
+    drawChshOutcomeStats(
+        ctx,
+        precomputedInitialOutcome,
+        e => labelEventualSet(Promise.resolve(e)),
+        noWaitActuallyDoSignalling);
 }
